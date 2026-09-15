@@ -1,0 +1,23 @@
+.gradle/
+build/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+
+### IntelliJ IDEA ###
+.idea/
+*.iml
+
+### Eclipse ###
+.classpath
+.project
+.settings/
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Logs ###
+*.log
+
+### Environment ###
+.env
