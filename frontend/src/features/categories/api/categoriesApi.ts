@@ -10,8 +10,8 @@ export interface CategoryInput {
   color: string;
 }
 
-export function listCategories(page: number, signal?: AbortSignal): Promise<PageResponse<Category>> {
-  return apiRequest<PageResponse<Category>>(`/categories?page=${page}&size=20`, { signal });
+export function listCategories(page: number, signal?: AbortSignal, size = 20): Promise<PageResponse<Category>> {
+  return apiRequest<PageResponse<Category>>(`/categories?page=${page}&size=${size}`, { signal });
 }
 
 export function createCategory(input: CategoryInput): Promise<Category> {
