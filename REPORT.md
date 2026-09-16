@@ -183,3 +183,10 @@
 [Промт.](promts/implement-transaction-csv-import-preview.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 26
+Реализовать подтверждение CSV-импорта.
+
+[Промт.](promts/implement-transaction-csv-import-confirmation.md)
+
+Данная запись сгенерирована агентом.

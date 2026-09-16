@@ -19,6 +19,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.otus.financetracker.application.categories.CategoryRepository;
+import ru.otus.financetracker.application.transactions.CreateTransactionCommand;
+import ru.otus.financetracker.application.transactions.TransactionService;
 import ru.otus.financetracker.configuration.ApplicationProperties;
 import ru.otus.financetracker.domain.categories.TransactionType;
 import ru.otus.financetracker.infrastructure.csv.CsvFormatException;
@@ -36,12 +38,14 @@ public class TransactionImportPreviewService {
     private final CsvRecordReader csvRecordReader;
     private final CategoryRepository categoryRepository;
     private final ApplicationProperties applicationProperties;
+    private final TransactionService transactionService;
 
     public TransactionImportPreviewService(CsvRecordReader csvRecordReader, CategoryRepository categoryRepository,
-                                           ApplicationProperties applicationProperties) {
+                                           ApplicationProperties applicationProperties, TransactionService transactionService) {
         this.csvRecordReader = csvRecordReader;
         this.categoryRepository = categoryRepository;
         this.applicationProperties = applicationProperties;
+        this.transactionService = transactionService;
     }
 
     public TransactionImportPreview preview(UUID userId, MultipartFile file, Map<String, String> columns) {
@@ -57,6 +61,25 @@ public class TransactionImportPreviewService {
         } catch (IOException | CsvFormatException exception) {
             throw invalid("file", "INVALID_FORMAT", "CSV file is invalid.");
         }
+    }
+
+    public int confirm(UUID userId, MultipartFile file, Map<String, String> columns) {
+        TransactionImportPreview preview = preview(userId, file, columns);
+        if (!preview.lineErrors().isEmpty()) {
+            throw new CsvImportValidationException(preview.lineErrors().stream()
+                    .map(error -> new ImportValidationViolation("rows[" + error.lineNumber() + "]." + error.field(),
+                            error.code(), error.message()))
+                    .toList());
+        }
+        return transactionService.createAll(userId, preview.rows().stream().map(this::toCreateCommand).toList()).size();
+    }
+
+    private CreateTransactionCommand toCreateCommand(TransactionImportPreview.Row row) {
+        return new CreateTransactionCommand(
+                UUID.fromString(row.categoryId()), new BigDecimal(row.amount()), row.currency(),
+                new BigDecimal(row.exchangeRateToBase()), LocalDate.parse(row.transactionDate()), row.description(),
+                TransactionType.valueOf(row.transactionType())
+        );
     }
 
     private TransactionImportPreview previewRows(UUID userId, PushbackReader reader, int nextLine, Map<String, Integer> mapping)

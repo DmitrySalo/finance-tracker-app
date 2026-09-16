@@ -33,20 +33,15 @@ public class TransactionService {
 
     @Transactional
     public Transaction create(UUID userId, CreateTransactionCommand command) {
-        var category = categoryRepository.findByIdAndUserId(command.categoryId(), userId)
-                .orElseThrow(ResourceNotFoundException::new);
-        if (category.transactionType() != command.transactionType()) {
-            throw new TransactionCategoryTypeMismatchException();
-        }
+        return createValidated(userId, command);
+    }
 
-        Instant now = clock.instant();
-        var transaction = transactionRepository.save(new Transaction(
-                UUID.randomUUID(), userId, category.id(), command.amount(), command.currency(), command.exchangeRateToBase(),
-                command.transactionDate(), command.description() == null ? null : command.description().strip(),
-                command.transactionType(), null, now, now, 0
-        ));
-        transactionAuditService.recordCreate(userId, transaction);
-        return transaction;
+    @Transactional
+    public List<Transaction> createAll(UUID userId, List<CreateTransactionCommand> commands) {
+        for (CreateTransactionCommand command : commands) {
+            validateCategory(userId, command);
+        }
+        return commands.stream().map(command -> createValidated(userId, command)).toList();
     }
 
     @Transactional(readOnly = true)
@@ -128,5 +123,25 @@ public class TransactionService {
     private Transaction findOwnedTransaction(UUID userId, UUID transactionId) {
         return transactionRepository.findByIdAndUserId(transactionId, userId)
                 .orElseThrow(ResourceNotFoundException::new);
+    }
+
+    private Transaction createValidated(UUID userId, CreateTransactionCommand command) {
+        validateCategory(userId, command);
+        Instant now = clock.instant();
+        var transaction = transactionRepository.save(new Transaction(
+                UUID.randomUUID(), userId, command.categoryId(), command.amount(), command.currency(), command.exchangeRateToBase(),
+                command.transactionDate(), command.description() == null ? null : command.description().strip(),
+                command.transactionType(), null, now, now, 0
+        ));
+        transactionAuditService.recordCreate(userId, transaction);
+        return transaction;
+    }
+
+    private void validateCategory(UUID userId, CreateTransactionCommand command) {
+        var category = categoryRepository.findByIdAndUserId(command.categoryId(), userId)
+                .orElseThrow(ResourceNotFoundException::new);
+        if (category.transactionType() != command.transactionType()) {
+            throw new TransactionCategoryTypeMismatchException();
+        }
     }
 }

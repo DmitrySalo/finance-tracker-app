@@ -509,6 +509,44 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    void shouldNotPersistAnyTransactionsWhenConfirmedCsvHasAnInvalidRow() throws Exception {
+        String token = registerAndLogin("import-confirm-invalid@example.test");
+        String categoryId = createCategory(token, "EXPENSE");
+        String csv = "category,amount,currency,rate,date,note,type\n"
+                + categoryId + ",12.3400,EUR,1.08500000,2026-09-16,First,EXPENSE\n"
+                + categoryId + ",invalid,EUR,1.08500000,2026-09-17,Second,EXPENSE\n";
+
+        confirmRequest(token, csv, validImportMapping())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.violations[0].field").value("rows[3].amount"));
+
+        org.assertj.core.api.Assertions.assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM transactions", Integer.class))
+                .isZero();
+        org.assertj.core.api.Assertions.assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM audit_logs", Integer.class))
+                .isZero();
+    }
+
+    @Test
+    void shouldPersistEveryTransactionAndAuditRecordWhenConfirmedCsvIsValid() throws Exception {
+        String token = registerAndLogin("import-confirm-valid@example.test");
+        String categoryId = createCategory(token, "EXPENSE");
+        String csv = "category,amount,currency,rate,date,note,type\n"
+                + categoryId + ",12.3400,EUR,1.08500000,2026-09-16,First,EXPENSE\n"
+                + categoryId + ",23.4500,USD,1.00000000,2026-09-17,Second,EXPENSE\n";
+
+        confirmRequest(token, csv, validImportMapping())
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.importedCount").value(2));
+
+        org.assertj.core.api.Assertions.assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM transactions", Integer.class))
+                .isEqualTo(2);
+        org.assertj.core.api.Assertions.assertThat(jdbcTemplate.queryForObject(
+                        "SELECT count(*) FROM audit_logs WHERE entity_type = 'TRANSACTION' AND action = 'CREATE'", Integer.class))
+                .isEqualTo(2);
+    }
+
+    @Test
     void shouldRejectUnknownImportColumnMapping() throws Exception {
         String token = registerAndLogin("import-mapping@example.test");
 
@@ -597,7 +635,15 @@ class TransactionControllerIntegrationTests {
     }
 
     private org.springframework.test.web.servlet.ResultActions previewRequest(String token, String csv, String mapping) throws Exception {
-        var request = multipart("/api/v1/transactions/imports/preview")
+        return importRequest("/api/v1/transactions/imports/preview", token, csv, mapping);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions confirmRequest(String token, String csv, String mapping) throws Exception {
+        return importRequest("/api/v1/transactions/imports", token, csv, mapping);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions importRequest(String url, String token, String csv, String mapping) throws Exception {
+        var request = multipart(url)
                 .file(new MockMultipartFile("file", "transactions.csv", "text/csv", csv.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
                 .file(new MockMultipartFile("mapping", "", "application/json", mapping.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         if (token != null) {

@@ -34,6 +34,7 @@ import ru.otus.financetracker.application.transactions.TransactionFilter;
 import ru.otus.financetracker.application.transactions.TransactionExportCursor;
 import ru.otus.financetracker.application.transactions.TransactionService;
 import ru.otus.financetracker.api.transactions.imports.ImportColumnMappingRequest;
+import ru.otus.financetracker.api.transactions.imports.TransactionImportConfirmationResponse;
 import ru.otus.financetracker.api.transactions.imports.TransactionImportPreviewResponse;
 import ru.otus.financetracker.application.transactions.imports.TransactionImportPreviewService;
 import ru.otus.financetracker.configuration.ApplicationProperties;
@@ -116,6 +117,14 @@ public class TransactionController {
                                                    @RequestPart("file") MultipartFile file,
                                                    @Valid @RequestPart("mapping") ImportColumnMappingRequest mapping) {
         return TransactionImportPreviewResponse.from(transactionImportPreviewService.preview(userId(jwt), file, mapping.columns()));
+    }
+
+    @PostMapping(value = "/imports", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    ResponseEntity<TransactionImportConfirmationResponse> confirmImport(@AuthenticationPrincipal Jwt jwt,
+                                                                         @RequestPart("file") MultipartFile file,
+                                                                         @Valid @RequestPart("mapping") ImportColumnMappingRequest mapping) {
+        int importedCount = transactionImportPreviewService.confirm(userId(jwt), file, mapping.columns());
+        return ResponseEntity.status(201).body(new TransactionImportConfirmationResponse(importedCount));
     }
 
     @GetMapping("/{transactionId}")

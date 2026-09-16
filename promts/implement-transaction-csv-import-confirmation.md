@@ -1,0 +1,3 @@
+# Реализовать подтверждение CSV-импорта
+
+В отдельной сессии реализуй ТОЛЬКО шаг 20 ARCHITECTURE.md: подтверждение CSV-импорта. Повторно валидируй file и mapping, атомарно сохраняй валидный набор транзакций и пиши аудит каждого create. Integration tests обязаны доказать отсутствие частичных данных при одной ошибочной строке и фиксацию всего valid файла. Соблюдай AGENTS и все релевантные инструкции (database/API/testing/security), изучи шаг 19 и текущий код. Не делай шага 21. В конце: relevant tests, ./gradlew verify, separate code review and fixes, create promts prompt, next REPORT entry, inspect git status/diff/log, make one correctly scoped commit in develop. Верни commit, summary, exact commands/results, files.
