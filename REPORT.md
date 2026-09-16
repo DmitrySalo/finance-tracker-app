@@ -57,3 +57,10 @@
 [Промт.](promts/update-backend-foundation.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 8
+Настроить профили и безопасную конфигурацию.
+
+[Промт.](promts/configure-profiles-and-secure-configuration.md)
+
+Данная запись сгенерирована агентом.
