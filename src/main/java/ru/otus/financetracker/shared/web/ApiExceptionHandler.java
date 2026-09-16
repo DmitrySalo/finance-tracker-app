@@ -19,6 +19,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import ru.otus.financetracker.shared.ErrorCode;
 import ru.otus.financetracker.api.auth.AuthenticationRateLimitExceededException;
 import ru.otus.financetracker.application.identity.InvalidCredentialsException;
+import ru.otus.financetracker.application.transactions.TransactionCategoryTypeMismatchException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -89,6 +90,13 @@ public class ApiExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     ResponseEntity<ApiErrorResponse> handleInvalidCredentials(InvalidCredentialsException exception, WebRequest request) {
         return error(HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, "Invalid email or password.", request, List.of());
+    }
+
+    @ExceptionHandler(TransactionCategoryTypeMismatchException.class)
+    ResponseEntity<ApiErrorResponse> handleTransactionCategoryTypeMismatch(
+            TransactionCategoryTypeMismatchException exception, WebRequest request) {
+        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED,
+                "Transaction type must match category type.", request, List.of());
     }
 
     @ExceptionHandler(Exception.class)

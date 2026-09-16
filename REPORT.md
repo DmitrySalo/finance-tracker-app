@@ -113,3 +113,10 @@
 [Промт.](promts/create-transactions-schema.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 16
+Реализовать создание и чтение транзакций.
+
+[Промт.](promts/implement-transaction-create-and-read.md)
+
+Данная запись сгенерирована агентом.
