@@ -5,6 +5,7 @@ import { LoginPage } from "../pages/LoginPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { ProtectedPage } from "../pages/ProtectedPage";
 import { RegisterPage } from "../pages/RegisterPage";
+import { CategoriesManager } from "../features/categories/components/CategoriesManager";
 import { AppShell } from "./AppShell";
 
 const protectedRoutes = [
@@ -30,7 +31,7 @@ export function AppRouter() {
         <Route element={<RegisterPage />} path="/register" />
         <Route element={<ProtectedRoute />}>
           {protectedRoutes.map(([path, title]) => (
-            <Route element={<ProtectedPage title={title} />} key={path} path={path} />
+            <Route element={path === "categories" ? <CategoriesManager /> : <ProtectedPage title={title} />} key={path} path={path} />
           ))}
         </Route>
         <Route element={<NotFoundPage />} path="*" />
