@@ -29,7 +29,7 @@
 Добавил в opencode MCP Context7.
 
 Для реализации этого шага я активно пользовался чат-версией gpt-5.6 terra и opencode чтобы снизить кол-во рутинных действий до минимума.
-[Промт.](promts/preparation-agent-infrastructure.md)
+[Промт.](promts/add-preparation-agent-infrastructure.md)
 
 ### Шаг. 3
 Сформировал и добавил ТЗ для проекта.
@@ -40,4 +40,9 @@
 Подбор и утверждение технологического стека.
 
 [Промт.](promts/add-architecture-and-development-plan.md)
+
+### Шаг. 5
+Перепроверил подготовленные для проекта инфраструктуру opencode и инструкций. Внёс соответствующие правки.
+
+[Промт.](promts/add-resolution-logical-conflicts.md)
 

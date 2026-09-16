@@ -2,7 +2,7 @@
 
 ## Технологический контекст
 
-Frontend разрабатывается на React, JavaScript и TypeScript.
+Frontend разрабатывается на React и TypeScript согласно `ARCHITECTURE.md`.
 
 При наличии существующих в проекте стандартов всегда следуй им в первую очередь:
 

@@ -27,3 +27,9 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+tasks.register('verify') {
+    group = 'verification'
+    description = 'Runs the project verification checks.'
+    dependsOn(tasks.named('check'))
+}
