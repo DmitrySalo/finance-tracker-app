@@ -16,6 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 import ru.otus.financetracker.configuration.ApplicationProperties;
 import ru.otus.financetracker.application.identity.UserRegistrationRepository;
 import ru.otus.financetracker.application.identity.UserAuthenticationRepository;
+import ru.otus.financetracker.application.categories.CategoryRepository;
 import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest(properties = {
@@ -43,6 +44,9 @@ class FinanceTrackerApplicationTests {
 
     @MockitoBean
     private UserAuthenticationRepository userAuthenticationRepository;
+
+    @MockitoBean
+    private CategoryRepository categoryRepository;
 
     private final Clock clock;
     private final ObjectMapper objectMapper;

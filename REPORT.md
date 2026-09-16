@@ -92,3 +92,10 @@
 [Промт.](promts/implement-login-and-jwt-security.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 13
+Создать схему и persistence категорий.
+
+[Промт.](promts/create-categories-schema-and-persistence.md)
+
+Данная запись сгенерирована агентом.

@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.otus.financetracker.shared.PageResponse;
 import ru.otus.financetracker.application.identity.UserRegistrationRepository;
 import ru.otus.financetracker.application.identity.UserAuthenticationRepository;
+import ru.otus.financetracker.application.categories.CategoryRepository;
 
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude="
@@ -64,6 +65,9 @@ class ApiContractIntegrationTests {
 
     @MockitoBean
     private UserAuthenticationRepository userAuthenticationRepository;
+
+    @MockitoBean
+    private CategoryRepository categoryRepository;
 
     @Autowired
     private MockMvc mockMvc;
