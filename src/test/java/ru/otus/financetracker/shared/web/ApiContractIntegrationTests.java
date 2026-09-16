@@ -8,8 +8,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.mockito.Mockito.mock;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Map;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -27,6 +30,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -57,6 +61,7 @@ import ru.otus.financetracker.application.recurring.RecurringTransactionReposito
         "MAX_CSV_FILE_SIZE=512KB",
         "MAX_CSV_ROWS=100",
         "MAX_REQUEST_HEADER_SIZE=8KB",
+        "springdoc.api-docs.enabled=true",
         "TEST_DATASOURCE_URL=jdbc:postgresql://localhost:5432/finance_tracker_test",
         "TEST_DATASOURCE_USERNAME=test",
         "TEST_DATASOURCE_PASSWORD=test"
@@ -204,6 +209,48 @@ class ApiContractIntegrationTests {
     void shouldExposeHealthEndpointWithoutAuthentication() throws Exception {
         mockMvc.perform(get("/actuator/health"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldRequireAuthenticationForInfoEndpoint() throws Exception {
+        mockMvc.perform(get("/actuator/info"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldDescribeAllImplementedApiResourcesInOpenApi() throws Exception {
+        MvcResult openApiDocument = mockMvc.perform(get("/v3/api-docs").with(user("test-user")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+                .andExpect(jsonPath("$.paths['/api/v1/categories'].post.responses['409']").exists())
+                .andReturn();
+
+        @SuppressWarnings("unchecked")
+        Map<String, Map<String, Object>> paths = (Map<String, Map<String, Object>>) com.jayway.jsonpath.JsonPath
+                .read(openApiDocument.getResponse().getContentAsString(), "$.paths");
+
+        assertThat(paths.entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith("/api/v1/") && !entry.getKey().startsWith("/api/v1/test/"))
+                .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey,
+                        entry -> entry.getValue().keySet())))
+                .containsExactlyInAnyOrderEntriesOf(Map.ofEntries(
+                        Map.entry("/api/v1/auth/register", Set.of("post")),
+                        Map.entry("/api/v1/auth/login", Set.of("post")),
+                        Map.entry("/api/v1/auth/me", Set.of("get")),
+                        Map.entry("/api/v1/categories", Set.of("get", "post")),
+                        Map.entry("/api/v1/categories/{categoryId}", Set.of("get", "patch", "delete")),
+                        Map.entry("/api/v1/transactions", Set.of("get", "post")),
+                        Map.entry("/api/v1/transactions/export", Set.of("get")),
+                        Map.entry("/api/v1/transactions/imports/preview", Set.of("post")),
+                        Map.entry("/api/v1/transactions/imports", Set.of("post")),
+                        Map.entry("/api/v1/transactions/{transactionId}", Set.of("get", "patch", "delete")),
+                        Map.entry("/api/v1/budgets", Set.of("get", "post")),
+                        Map.entry("/api/v1/budgets/{budgetId}", Set.of("get", "patch", "delete")),
+                        Map.entry("/api/v1/dashboard", Set.of("get")),
+                        Map.entry("/api/v1/dashboard/spending-trend", Set.of("get")),
+                        Map.entry("/api/v1/recurring-transactions", Set.of("get", "post")),
+                        Map.entry("/api/v1/recurring-transactions/{id}", Set.of("get", "patch", "delete"))
+                ));
     }
 
     @Test

@@ -33,3 +33,23 @@ server:
 spring.servlet.multipart:
   max-file-size: ${app.limits.max-csv-file-size}
   max-request-size: ${app.limits.max-request-size}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: Personal finance tracking API
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

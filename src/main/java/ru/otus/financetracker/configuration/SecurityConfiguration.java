@@ -8,6 +8,7 @@ import javax.crypto.spec.SecretKeySpec;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -51,15 +52,19 @@ public class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, ApiErrorResponseWriter errorResponseWriter,
-                                            CorsConfigurationSource corsConfigurationSource) throws Exception {
+                                            CorsConfigurationSource corsConfigurationSource, Environment environment) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers("/api/v1/auth/register").permitAll()
-                        .requestMatchers("/api/v1/auth/login").permitAll()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(authorize -> {
+                    authorize.requestMatchers("/actuator/health").permitAll()
+                            .requestMatchers("/api/v1/auth/register").permitAll()
+                            .requestMatchers("/api/v1/auth/login").permitAll();
+                    if (environment.matchesProfiles("dev")) {
+                        authorize.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll();
+                    }
+                    authorize.anyRequest().authenticated();
+                })
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .authenticationEntryPoint((request, response, authenticationException) -> errorResponseWriter.write(
                                 response, request, 401, ErrorCode.UNAUTHORIZED, "Authentication is required."

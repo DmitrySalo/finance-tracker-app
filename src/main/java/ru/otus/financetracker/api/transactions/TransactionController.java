@@ -10,6 +10,11 @@ import java.util.UUID;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -46,6 +51,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/transactions")
+@Tag(name = "Transactions", description = "Current user's financial transactions and CSV import/export")
+@SecurityRequirement(name = "bearerAuth")
 public class TransactionController {
 
     private static final int EXPORT_CHUNK_SIZE = 100;
@@ -65,6 +72,8 @@ public class TransactionController {
     }
 
     @GetMapping(value = "/export", produces = "text/csv")
+    @Operation(summary = "Export transactions as CSV", description = "Exports filtered transactions up to the configured CSV row limit.")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "CSV attachment"), @ApiResponse(responseCode = "400", description = "Invalid filter"), @ApiResponse(responseCode = "401", description = "Authentication is required")})
     ResponseEntity<StreamingResponseBody> export(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) LocalDate fromDate,
@@ -103,6 +112,8 @@ public class TransactionController {
     }
 
     @PostMapping
+    @Operation(summary = "Create a transaction")
+    @ApiResponses({@ApiResponse(responseCode = "201", description = "Transaction created"), @ApiResponse(responseCode = "400", description = "Invalid request"), @ApiResponse(responseCode = "401", description = "Authentication is required"), @ApiResponse(responseCode = "404", description = "Category not found")})
     ResponseEntity<TransactionResponse> create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CreateTransactionRequest request) {
         var transaction = transactionService.create(userId(jwt), new CreateTransactionCommand(
                 request.categoryId(), request.amount(), request.currency(), request.exchangeRateToBase(), request.transactionDate(),
@@ -113,6 +124,8 @@ public class TransactionController {
     }
 
     @PostMapping(value = "/imports/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Preview a CSV transaction import", description = "Validates a CSV file and mapping without saving transactions.")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Import preview"), @ApiResponse(responseCode = "400", description = "Invalid CSV, mapping, or file"), @ApiResponse(responseCode = "401", description = "Authentication is required"), @ApiResponse(responseCode = "413", description = "File exceeds configured size limit")})
     TransactionImportPreviewResponse previewImport(@AuthenticationPrincipal Jwt jwt,
                                                    @RequestPart("file") MultipartFile file,
                                                    @Valid @RequestPart("mapping") ImportColumnMappingRequest mapping) {
@@ -120,6 +133,8 @@ public class TransactionController {
     }
 
     @PostMapping(value = "/imports", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Confirm a CSV transaction import", description = "Revalidates and atomically saves all valid CSV rows.")
+    @ApiResponses({@ApiResponse(responseCode = "201", description = "Transactions imported"), @ApiResponse(responseCode = "400", description = "Invalid CSV, mapping, or file"), @ApiResponse(responseCode = "401", description = "Authentication is required"), @ApiResponse(responseCode = "413", description = "File exceeds configured size limit")})
     ResponseEntity<TransactionImportConfirmationResponse> confirmImport(@AuthenticationPrincipal Jwt jwt,
                                                                          @RequestPart("file") MultipartFile file,
                                                                          @Valid @RequestPart("mapping") ImportColumnMappingRequest mapping) {
@@ -128,11 +143,15 @@ public class TransactionController {
     }
 
     @GetMapping("/{transactionId}")
+    @Operation(summary = "Get a transaction")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Transaction"), @ApiResponse(responseCode = "401", description = "Authentication is required"), @ApiResponse(responseCode = "404", description = "Transaction not found")})
     TransactionResponse get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID transactionId) {
         return TransactionResponse.from(transactionService.get(userId(jwt), transactionId));
     }
 
     @PatchMapping("/{transactionId}")
+    @Operation(summary = "Update a transaction")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Transaction updated"), @ApiResponse(responseCode = "400", description = "Invalid request"), @ApiResponse(responseCode = "401", description = "Authentication is required"), @ApiResponse(responseCode = "404", description = "Transaction not found"), @ApiResponse(responseCode = "409", description = "Version conflict")})
     TransactionResponse update(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID transactionId,
                                @Valid @RequestBody UpdateTransactionRequest request) {
         return TransactionResponse.from(transactionService.update(userId(jwt), transactionId, new UpdateTransactionCommand(
@@ -142,6 +161,8 @@ public class TransactionController {
     }
 
     @DeleteMapping("/{transactionId}")
+    @Operation(summary = "Delete a transaction")
+    @ApiResponses({@ApiResponse(responseCode = "204", description = "Transaction deleted"), @ApiResponse(responseCode = "400", description = "Invalid version"), @ApiResponse(responseCode = "401", description = "Authentication is required"), @ApiResponse(responseCode = "404", description = "Transaction not found"), @ApiResponse(responseCode = "409", description = "Version conflict")})
     ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID transactionId,
                                 @RequestParam @Min(0) long version) {
         transactionService.delete(userId(jwt), transactionId, version);
@@ -149,6 +170,8 @@ public class TransactionController {
     }
 
     @GetMapping
+    @Operation(summary = "List transactions", description = "Filters by date, category, amount, and type. Sort accepts transactionDate or amount with asc or desc; page size is limited to 100.")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Transaction page"), @ApiResponse(responseCode = "400", description = "Invalid filter, sort, or pagination"), @ApiResponse(responseCode = "401", description = "Authentication is required"), @ApiResponse(responseCode = "404", description = "Category not found")})
     PageResponse<TransactionResponse> list(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) LocalDate fromDate,

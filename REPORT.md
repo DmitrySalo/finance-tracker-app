@@ -190,3 +190,10 @@
 [Промт.](promts/implement-transaction-csv-import-confirmation.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 27
+Завершить backend API и seed-данные.
+
+[Промт.](promts/complete-backend-api-and-seed-data.md)
+
+Данная запись сгенерирована агентом.
