@@ -1,0 +1,3 @@
+# Реализовать UI дашборда
+
+В отдельной сессии выполни только шаг 29 ARCHITECTURE.md: dashboard UI с month selector, pie chart, six-month line chart, top-5 categories based on dashboard API with loading/empty/error states. Component tests validate params and accessible textual alternatives for charts. Follow AGENTS/frontend/testing/security/API instructions skills. Study current Dashboard backend contract and frontend patterns. No recurring/audit scope. Finish npm lint/test/build and ./gradlew verify; independent frontend review and fix critical issues; create prompt, REPORT next sequential entry, inspect git status/diff/log, exactly one scoped commit develop. Return summary hash files commands/results.

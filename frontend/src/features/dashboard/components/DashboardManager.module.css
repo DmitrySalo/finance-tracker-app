@@ -1,0 +1,22 @@
+.page { display: grid; gap: var(--space-6); }
+.header { display: flex; align-items: end; justify-content: space-between; gap: var(--space-4); }
+.header h1, .header p, .chartCard h2, .chartCard p, .topCategories h2, .topCategories p { margin: 0; }
+.header p, .chartCard p { margin-top: var(--space-2); color: var(--color-text-muted); }
+.monthPicker { display: grid; gap: var(--space-2); flex: none; font-weight: 600; }
+.monthPicker input { padding: var(--space-3); color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+.content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
+.chartCard, .topCategories, .empty { padding: var(--space-6); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }
+.pieChart { display: block; width: min(16rem, 100%); margin: var(--space-4) auto; transform: rotate(-90deg); }
+.lineChart { display: block; width: 100%; height: 12rem; margin: var(--space-4) 0; color: var(--color-text); }
+.legend, .trendValues, .topCategories ol { display: grid; gap: var(--space-2); padding: 0; margin: 0; list-style: none; }
+.legend li { display: flex; align-items: center; gap: var(--space-2); }
+.legendMarker { width: 0.75rem; height: 0.75rem; flex: none; border-radius: 50%; }
+.trendValues { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.trendValues li, .topCategories li { display: flex; justify-content: space-between; gap: var(--space-2); color: var(--color-text-muted); }
+.trendValues strong, .topCategories strong { color: var(--color-text); }
+.topCategories { grid-column: span 2; }
+.topCategories ol { margin-top: var(--space-4); counter-reset: top-category; }
+.topCategories li { counter-increment: top-category; }
+.topCategories li span::before { content: counter(top-category) ". "; }
+.error { margin: 0; color: #b42318; }
+@media (max-width: 44rem) { .header { align-items: stretch; flex-direction: column; } .monthPicker { width: 100%; } .content { grid-template-columns: 1fr; } .topCategories { grid-column: auto; } }
