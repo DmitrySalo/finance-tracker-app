@@ -6,6 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -108,7 +110,8 @@ class CategoriesSchemaMigrationTests {
         categoryRepository.save(firstCategory);
         categoryRepository.save(secondCategory);
 
-        assertThat(categoryRepository.findAllByUserId(firstUserId)).containsExactly(firstCategory);
+        assertThat(categoryRepository.findAllByUserId(firstUserId, PageRequest.of(0, 20, Sort.by("name").ascending()))
+                .getContent()).containsExactly(firstCategory);
         assertThat(categoryRepository.findByIdAndUserId(secondCategory.id(), firstUserId)).isEmpty();
     }
 

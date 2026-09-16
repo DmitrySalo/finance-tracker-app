@@ -1,9 +1,10 @@
 package ru.otus.financetracker.infrastructure.persistence;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import ru.otus.financetracker.application.categories.CategoryRepository;
 import ru.otus.financetracker.domain.categories.Category;
@@ -18,8 +19,11 @@ public class JpaCategoryRepository implements CategoryRepository {
     }
 
     @Override
-    public void save(Category category) {
-        categoryJpaRepository.save(toEntity(category));
+    public Category save(Category category) {
+        categoryJpaRepository.saveAndFlush(toEntity(category));
+        return categoryJpaRepository.findByIdAndUserId(category.id(), category.userId())
+                .map(this::toDomain)
+                .orElseThrow();
     }
 
     @Override
@@ -28,10 +32,14 @@ public class JpaCategoryRepository implements CategoryRepository {
     }
 
     @Override
-    public List<Category> findAllByUserId(UUID userId) {
-        return categoryJpaRepository.findAllByUserIdOrderByNameAscIdAsc(userId).stream()
-                .map(this::toDomain)
-                .toList();
+    public Page<Category> findAllByUserId(UUID userId, Pageable pageable) {
+        return categoryJpaRepository.findAllByUserId(userId, pageable).map(this::toDomain);
+    }
+
+    @Override
+    public void delete(Category category) {
+        categoryJpaRepository.delete(toEntity(category));
+        categoryJpaRepository.flush();
     }
 
     private CategoryJpaEntity toEntity(Category category) {

@@ -99,3 +99,10 @@
 [Промт.](promts/create-categories-schema-and-persistence.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 14
+Реализовать API категорий.
+
+[Промт.](promts/implement-categories-api.md)
+
+Данная запись сгенерирована агентом.

@@ -3,6 +3,7 @@ package ru.otus.financetracker.shared.web;
 import java.util.List;
 
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import ru.otus.financetracker.shared.ErrorCode;
 import ru.otus.financetracker.api.auth.AuthenticationRateLimitExceededException;
@@ -54,6 +56,11 @@ public class ApiExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, List.of());
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ApiErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException exception, WebRequest request) {
+        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, List.of());
+    }
+
     @ExceptionHandler({ResourceNotFoundException.class, OwnershipDeniedException.class, NoResourceFoundException.class})
     ResponseEntity<ApiErrorResponse> handleNotFound(Exception exception, WebRequest request) {
         return error(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, "Resource not found.", request, List.of());
@@ -61,6 +68,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
     ResponseEntity<ApiErrorResponse> handleConflict(OptimisticLockingFailureException exception, WebRequest request) {
+        return error(HttpStatus.CONFLICT, ErrorCode.CONFLICT, "Resource state conflict.", request, List.of());
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ResponseEntity<ApiErrorResponse> handleDataConflict(DataIntegrityViolationException exception, WebRequest request) {
         return error(HttpStatus.CONFLICT, ErrorCode.CONFLICT, "Resource state conflict.", request, List.of());
     }
 
