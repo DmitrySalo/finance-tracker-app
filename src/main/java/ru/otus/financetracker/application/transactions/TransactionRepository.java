@@ -14,4 +14,6 @@ public interface TransactionRepository {
     Optional<Transaction> findByIdAndUserId(UUID transactionId, UUID userId);
 
     Page<Transaction> findAllByUserId(UUID userId, TransactionFilter filter, Pageable pageable);
+
+    void delete(Transaction transaction);
 }

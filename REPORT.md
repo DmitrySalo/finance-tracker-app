@@ -127,3 +127,10 @@
 [Промт.](promts/implement-transaction-list.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 18
+Реализовать изменение и удаление транзакций.
+
+[Промт.](promts/implement-transaction-update-and-delete.md)
+
+Данная запись сгенерирована агентом.

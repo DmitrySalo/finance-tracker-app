@@ -13,7 +13,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +26,7 @@ import ru.otus.financetracker.application.transactions.CreateTransactionCommand;
 import ru.otus.financetracker.application.transactions.InvalidTransactionFilterException;
 import ru.otus.financetracker.application.transactions.TransactionFilter;
 import ru.otus.financetracker.application.transactions.TransactionService;
+import ru.otus.financetracker.application.transactions.UpdateTransactionCommand;
 import ru.otus.financetracker.domain.categories.TransactionType;
 import ru.otus.financetracker.shared.PageResponse;
 
@@ -50,6 +53,22 @@ public class TransactionController {
     @GetMapping("/{transactionId}")
     TransactionResponse get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID transactionId) {
         return TransactionResponse.from(transactionService.get(userId(jwt), transactionId));
+    }
+
+    @PatchMapping("/{transactionId}")
+    TransactionResponse update(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID transactionId,
+                               @Valid @RequestBody UpdateTransactionRequest request) {
+        return TransactionResponse.from(transactionService.update(userId(jwt), transactionId, new UpdateTransactionCommand(
+                request.version(), request.categoryId(), request.amount(), request.currency(), request.exchangeRateToBase(),
+                request.transactionDate(), request.description(), request.transactionType()
+        )));
+    }
+
+    @DeleteMapping("/{transactionId}")
+    ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID transactionId,
+                                @RequestParam @Min(0) long version) {
+        transactionService.delete(userId(jwt), transactionId, version);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping

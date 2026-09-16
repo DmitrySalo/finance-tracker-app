@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.otus.financetracker.application.categories.CategoryRepository;
@@ -43,8 +44,42 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public Transaction get(UUID userId, UUID transactionId) {
-        return transactionRepository.findByIdAndUserId(transactionId, userId)
-                .orElseThrow(ResourceNotFoundException::new);
+        return findOwnedTransaction(userId, transactionId);
+    }
+
+    @Transactional
+    public Transaction update(UUID userId, UUID transactionId, UpdateTransactionCommand command) {
+        var transaction = findOwnedTransaction(userId, transactionId);
+        if (transaction.version() != command.version()) {
+            throw new OptimisticLockingFailureException("Transaction has been modified.");
+        }
+
+        var category = command.categoryId() == null
+                ? categoryRepository.findByIdAndUserId(transaction.categoryId(), userId).orElseThrow(ResourceNotFoundException::new)
+                : categoryRepository.findByIdAndUserId(command.categoryId(), userId).orElseThrow(ResourceNotFoundException::new);
+        var transactionType = command.transactionType() == null ? transaction.transactionType() : command.transactionType();
+        if (category.transactionType() != transactionType) {
+            throw new TransactionCategoryTypeMismatchException();
+        }
+
+        return transactionRepository.save(new Transaction(
+                transaction.id(), transaction.userId(), category.id(),
+                command.amount() == null ? transaction.amount() : command.amount(),
+                command.currency() == null ? transaction.currency() : command.currency(),
+                command.exchangeRateToBase() == null ? transaction.exchangeRateToBase() : command.exchangeRateToBase(),
+                command.transactionDate() == null ? transaction.transactionDate() : command.transactionDate(),
+                command.description() == null ? transaction.description() : command.description().strip(), transactionType,
+                transaction.createdAt(), clock.instant(), transaction.version()
+        ));
+    }
+
+    @Transactional
+    public void delete(UUID userId, UUID transactionId, long version) {
+        var transaction = findOwnedTransaction(userId, transactionId);
+        if (transaction.version() != version) {
+            throw new OptimisticLockingFailureException("Transaction has been modified.");
+        }
+        transactionRepository.delete(transaction);
     }
 
     @Transactional(readOnly = true)
@@ -64,5 +99,10 @@ public class TransactionService {
         if (filter.minAmount() != null && filter.maxAmount() != null && filter.minAmount().compareTo(filter.maxAmount()) > 0) {
             throw new InvalidTransactionFilterException();
         }
+    }
+
+    private Transaction findOwnedTransaction(UUID userId, UUID transactionId) {
+        return transactionRepository.findByIdAndUserId(transactionId, userId)
+                .orElseThrow(ResourceNotFoundException::new);
     }
 }

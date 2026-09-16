@@ -40,6 +40,12 @@ public class JpaTransactionRepository implements TransactionRepository {
         return transactionJpaRepository.findAll(specification(userId, filter), pageable).map(this::toDomain);
     }
 
+    @Override
+    public void delete(Transaction transaction) {
+        transactionJpaRepository.delete(toEntity(transaction));
+        transactionJpaRepository.flush();
+    }
+
     private Specification<TransactionJpaEntity> specification(UUID userId, TransactionFilter filter) {
         return (root, query, criteriaBuilder) -> {
             var predicates = new ArrayList<Predicate>();

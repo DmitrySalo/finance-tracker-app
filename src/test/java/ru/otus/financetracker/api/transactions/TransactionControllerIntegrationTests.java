@@ -1,6 +1,8 @@
 package ru.otus.financetracker.api.transactions;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -113,6 +115,139 @@ class TransactionControllerIntegrationTests {
         String transactionId = new tools.jackson.databind.ObjectMapper().readTree(response.getResponse().getContentAsString())
                 .get("id").asText();
         mockMvc.perform(get("/api/v1/transactions/{transactionId}", transactionId)
+                        .header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void shouldUpdateTransactionWithOwnedMatchingCategory() throws Exception {
+        String token = registerAndLogin("update-owner@example.test");
+        String expenseCategoryId = createCategory(token, "EXPENSE");
+        String incomeCategoryId = createCategory(token, "INCOME");
+        String transactionId = createTransaction(token, expenseCategoryId, "12.34", "2026-09-16", "EXPENSE", "Groceries");
+
+        mockMvc.perform(patch("/api/v1/transactions/{transactionId}", transactionId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                                {"version":0,"categoryId":"%s","amount":22.2200,"currency":"USD",
+                                "exchangeRateToBase":1.00000000,"transactionDate":"2026-09-17",
+                                "description":" Dinner ","transactionType":"INCOME"}
+                                """.formatted(incomeCategoryId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.categoryId").value(incomeCategoryId))
+                .andExpect(jsonPath("$.amount").value(22.22))
+                .andExpect(jsonPath("$.currency").value("USD"))
+                .andExpect(jsonPath("$.transactionDate").value("2026-09-17"))
+                .andExpect(jsonPath("$.description").value("Dinner"))
+                .andExpect(jsonPath("$.transactionType").value("INCOME"))
+                .andExpect(jsonPath("$.version").value(1));
+    }
+
+    @Test
+    void shouldDeleteOwnedTransaction() throws Exception {
+        String token = registerAndLogin("delete-owner@example.test");
+        String categoryId = createCategory(token, "EXPENSE");
+        String transactionId = createTransaction(token, categoryId, "12.34", "2026-09-16", "EXPENSE", "Groceries");
+
+        mockMvc.perform(delete("/api/v1/transactions/{transactionId}?version=0", transactionId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/v1/transactions/{transactionId}", transactionId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void shouldRejectInvalidAndStaleTransactionUpdates() throws Exception {
+        String token = registerAndLogin("invalid-update-owner@example.test");
+        String expenseCategoryId = createCategory(token, "EXPENSE");
+        String transactionId = createTransaction(token, expenseCategoryId, "12.34", "2026-09-16", "EXPENSE", "Groceries");
+
+        mockMvc.perform(patch("/api/v1/transactions/{transactionId}", transactionId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("{\"version\":0,\"amount\":0,\"currency\":\"usd\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        mockMvc.perform(patch("/api/v1/transactions/{transactionId}", transactionId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("{\"version\":0,\"description\":\"Updated\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(patch("/api/v1/transactions/{transactionId}", transactionId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("{\"version\":0,\"description\":\"Stale\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"));
+    }
+
+    @Test
+    void shouldRejectStaleTransactionDeletionAndPreserveTransaction() throws Exception {
+        String token = registerAndLogin("stale-delete-owner@example.test");
+        String categoryId = createCategory(token, "EXPENSE");
+        String transactionId = createTransaction(token, categoryId, "12.34", "2026-09-16", "EXPENSE", "Groceries");
+
+        mockMvc.perform(patch("/api/v1/transactions/{transactionId}", transactionId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("{\"version\":0,\"description\":\"Updated\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(delete("/api/v1/transactions/{transactionId}?version=0", transactionId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"));
+        mockMvc.perform(get("/api/v1/transactions/{transactionId}", transactionId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").value("Updated"))
+                .andExpect(jsonPath("$.version").value(1));
+    }
+
+    @Test
+    void shouldRejectMismatchedOrForeignCategoryOnTransactionUpdate() throws Exception {
+        String ownerToken = registerAndLogin("category-update-owner@example.test");
+        String otherToken = registerAndLogin("category-update-other@example.test");
+        String expenseCategoryId = createCategory(ownerToken, "EXPENSE");
+        String incomeCategoryId = createCategory(ownerToken, "INCOME");
+        String foreignCategoryId = createCategory(otherToken, "EXPENSE");
+        String transactionId = createTransaction(ownerToken, expenseCategoryId, "12.34", "2026-09-16", "EXPENSE", "Groceries");
+
+        mockMvc.perform(patch("/api/v1/transactions/{transactionId}", transactionId)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType("application/json")
+                        .content("""
+                                {"version":0,"categoryId":"%s","transactionType":"EXPENSE"}
+                                """.formatted(incomeCategoryId)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        mockMvc.perform(patch("/api/v1/transactions/{transactionId}", transactionId)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType("application/json")
+                        .content("""
+                                {"version":0,"categoryId":"%s"}
+                                """.formatted(foreignCategoryId)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void shouldHideForeignTransactionForUpdateAndDelete() throws Exception {
+        String ownerToken = registerAndLogin("mutation-owner@example.test");
+        String otherToken = registerAndLogin("mutation-other@example.test");
+        String transactionId = createTransaction(ownerToken, createCategory(ownerToken, "EXPENSE"), "12.34", "2026-09-16",
+                "EXPENSE", "Groceries");
+
+        mockMvc.perform(patch("/api/v1/transactions/{transactionId}", transactionId)
+                        .header("Authorization", "Bearer " + otherToken)
+                        .contentType("application/json")
+                        .content("{\"version\":0,\"description\":\"Attempt\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+        mockMvc.perform(delete("/api/v1/transactions/{transactionId}?version=0", transactionId)
                         .header("Authorization", "Bearer " + otherToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
