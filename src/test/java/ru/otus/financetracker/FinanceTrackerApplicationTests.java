@@ -15,6 +15,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 import ru.otus.financetracker.configuration.ApplicationProperties;
 import ru.otus.financetracker.application.identity.UserRegistrationRepository;
+import ru.otus.financetracker.application.identity.UserAuthenticationRepository;
 import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest(properties = {
@@ -39,6 +40,9 @@ class FinanceTrackerApplicationTests {
 
     @MockitoBean
     private UserRegistrationRepository userRegistrationRepository;
+
+    @MockitoBean
+    private UserAuthenticationRepository userAuthenticationRepository;
 
     private final Clock clock;
     private final ObjectMapper objectMapper;

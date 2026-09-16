@@ -28,8 +28,14 @@ public record ApplicationProperties(
     public record Jwt(
             @NotBlank String issuer,
             @NotBlank String audience,
-            @NotBlank @Size(min = 32) String secret
+            @NotBlank @Size(min = 32) String secret,
+            @NotNull Duration accessTokenTtl
     ) {
+
+        @AssertTrue(message = "Access token TTL must be positive.")
+        public boolean isAccessTokenTtlPositive() {
+            return accessTokenTtl != null && !accessTokenTtl.isNegative() && !accessTokenTtl.isZero();
+        }
     }
 
     public record Cors(

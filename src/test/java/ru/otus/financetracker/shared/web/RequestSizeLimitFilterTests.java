@@ -23,7 +23,8 @@ class RequestSizeLimitFilterTests {
     private final RequestSizeLimitFilter filter = new RequestSizeLimitFilter(
             new ApplicationProperties(
                     ZoneOffset.UTC,
-                    new ApplicationProperties.Jwt("https://issuer.test", "finance-tracker-test", "test-signing-secret-with-at-least-32-characters"),
+                    new ApplicationProperties.Jwt("https://issuer.test", "finance-tracker-test",
+                            "test-signing-secret-with-at-least-32-characters", Duration.ofMinutes(15)),
                     new ApplicationProperties.Cors(List.of("https://frontend.test")),
                     new ApplicationProperties.Limits(DataSize.ofBytes(4), DataSize.ofBytes(4), 1, 5, Duration.ofMinutes(1))
             ),

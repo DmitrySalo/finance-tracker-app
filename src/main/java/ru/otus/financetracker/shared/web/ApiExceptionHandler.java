@@ -15,7 +15,8 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import ru.otus.financetracker.shared.ErrorCode;
-import ru.otus.financetracker.api.auth.RegistrationRateLimitExceededException;
+import ru.otus.financetracker.api.auth.AuthenticationRateLimitExceededException;
+import ru.otus.financetracker.application.identity.InvalidCredentialsException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -68,9 +69,14 @@ public class ApiExceptionHandler {
         return error(HttpStatus.FORBIDDEN, ErrorCode.FORBIDDEN, "Access is denied.", request, List.of());
     }
 
-    @ExceptionHandler(RegistrationRateLimitExceededException.class)
-    ResponseEntity<ApiErrorResponse> handleRateLimit(RegistrationRateLimitExceededException exception, WebRequest request) {
-        return error(HttpStatus.TOO_MANY_REQUESTS, ErrorCode.RATE_LIMITED, "Too many registration attempts.", request, List.of());
+    @ExceptionHandler(AuthenticationRateLimitExceededException.class)
+    ResponseEntity<ApiErrorResponse> handleRateLimit(AuthenticationRateLimitExceededException exception, WebRequest request) {
+        return error(HttpStatus.TOO_MANY_REQUESTS, ErrorCode.RATE_LIMITED, "Too many authentication attempts.", request, List.of());
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    ResponseEntity<ApiErrorResponse> handleInvalidCredentials(InvalidCredentialsException exception, WebRequest request) {
+        return error(HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, "Invalid email or password.", request, List.of());
     }
 
     @ExceptionHandler(Exception.class)

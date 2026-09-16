@@ -85,3 +85,10 @@
 [Промт.](promts/implement-user-registration.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 12
+Реализовать login и JWT security.
+
+[Промт.](promts/implement-login-and-jwt-security.md)
+
+Данная запись сгенерирована агентом.

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import ru.otus.financetracker.configuration.ApplicationProperties;
 
 @Component
-public class RegistrationRateLimiter {
+public class AuthenticationRateLimiter {
 
     private static final int MAX_TRACKED_KEYS = 10_000;
 
@@ -18,7 +18,7 @@ public class RegistrationRateLimiter {
     private final int maxAttempts;
     private final Duration windowDuration;
 
-    public RegistrationRateLimiter(Clock clock, ApplicationProperties properties) {
+    public AuthenticationRateLimiter(Clock clock, ApplicationProperties properties) {
         this.clock = clock;
         this.maxAttempts = properties.limits().registrationMaxAttempts();
         this.windowDuration = properties.limits().registrationWindow();
@@ -27,13 +27,16 @@ public class RegistrationRateLimiter {
     public void check(String clientIpAddress, String normalizedEmail) {
         Instant now = clock.instant();
         if (!tryAcquire("ip:" + clientIpAddress, now) || !tryAcquire("email:" + normalizedEmail, now)) {
-            throw new RegistrationRateLimitExceededException();
+            throw new AuthenticationRateLimitExceededException();
         }
     }
 
     private boolean tryAcquire(String key, Instant now) {
         if (!windows.containsKey(key) && windows.size() >= MAX_TRACKED_KEYS) {
-            return false;
+            windows.entrySet().removeIf(entry -> !now.isBefore(entry.getValue().startedAt().plus(windowDuration)));
+            if (windows.size() >= MAX_TRACKED_KEYS) {
+                return false;
+            }
         }
         return windows.compute(key, (ignored, existing) -> {
             if (existing == null || !now.isBefore(existing.startedAt().plus(windowDuration))) {

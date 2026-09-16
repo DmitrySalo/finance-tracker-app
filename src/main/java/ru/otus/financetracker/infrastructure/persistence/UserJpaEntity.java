@@ -54,4 +54,36 @@ public class UserJpaEntity {
         this.updatedAt = updatedAt;
         this.version = version;
     }
+
+    UUID getId() {
+        return id;
+    }
+
+    String getEmail() {
+        return email;
+    }
+
+    String getPasswordHash() {
+        return passwordHash;
+    }
+
+    String getDisplayName() {
+        return displayName;
+    }
+
+    String getBaseCurrency() {
+        return baseCurrency;
+    }
+
+    Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    long getVersion() {
+        return version;
+    }
 }
