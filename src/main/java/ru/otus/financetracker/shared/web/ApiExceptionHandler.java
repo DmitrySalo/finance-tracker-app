@@ -17,12 +17,16 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import ru.otus.financetracker.shared.ErrorCode;
 import ru.otus.financetracker.api.auth.AuthenticationRateLimitExceededException;
 import ru.otus.financetracker.application.identity.InvalidCredentialsException;
 import ru.otus.financetracker.application.transactions.TransactionCategoryTypeMismatchException;
 import ru.otus.financetracker.application.transactions.InvalidTransactionFilterException;
+import ru.otus.financetracker.application.transactions.imports.CsvImportValidationException;
+import ru.otus.financetracker.application.transactions.imports.CsvImportPayloadTooLargeException;
 import ru.otus.financetracker.application.budgets.BudgetCategoryMustBeExpenseException;
 import ru.otus.financetracker.application.budgets.BudgetMonthMustBeFirstDayException;
 import ru.otus.financetracker.application.budgets.BudgetCurrencyMustMatchUserBaseCurrencyException;
@@ -88,6 +92,27 @@ public class ApiExceptionHandler {
                 List.of(new ApiErrorResponse.Violation(exception.getParameterName(), "REQUIRED", "Must not be null.")));
     }
 
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    ResponseEntity<ApiErrorResponse> handleMissingRequestPart(MissingServletRequestPartException exception,
+                                                               WebRequest request) {
+        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request,
+                List.of(new ApiErrorResponse.Violation(exception.getRequestPartName(), "REQUIRED", "Must not be null.")));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ApiErrorResponse> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException exception,
+                                                                  WebRequest request) {
+        return error(HttpStatus.PAYLOAD_TOO_LARGE, ErrorCode.PAYLOAD_TOO_LARGE,
+                "Request body exceeds the allowed size.", request, List.of());
+    }
+
+    @ExceptionHandler(CsvImportPayloadTooLargeException.class)
+    ResponseEntity<ApiErrorResponse> handleCsvImportPayloadTooLarge(CsvImportPayloadTooLargeException exception,
+                                                                     WebRequest request) {
+        return error(HttpStatus.PAYLOAD_TOO_LARGE, ErrorCode.PAYLOAD_TOO_LARGE,
+                "Request body exceeds the allowed size.", request, List.of());
+    }
+
     @ExceptionHandler({ResourceNotFoundException.class, OwnershipDeniedException.class, NoResourceFoundException.class})
     ResponseEntity<ApiErrorResponse> handleNotFound(Exception exception, WebRequest request) {
         return error(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, "Resource not found.", request, List.of());
@@ -129,6 +154,13 @@ public class ApiExceptionHandler {
     ResponseEntity<ApiErrorResponse> handleInvalidTransactionFilter(
             InvalidTransactionFilterException exception, WebRequest request) {
         return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, List.of());
+    }
+
+    @ExceptionHandler(CsvImportValidationException.class)
+    ResponseEntity<ApiErrorResponse> handleCsvImportValidation(CsvImportValidationException exception, WebRequest request) {
+        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request,
+                exception.violations().stream().map(violation -> new ApiErrorResponse.Violation(violation.field(),
+                        violation.code(), violation.message())).toList());
     }
 
     @ExceptionHandler({BudgetCategoryMustBeExpenseException.class, BudgetMonthMustBeFirstDayException.class,

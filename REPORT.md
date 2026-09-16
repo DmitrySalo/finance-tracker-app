@@ -176,3 +176,10 @@
 [Промт.](promts/implement-transaction-csv-export.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 25
+Реализовать preview CSV-импорта.
+
+[Промт.](promts/implement-transaction-csv-import-preview.md)
+
+Данная запись сгенерирована агентом.

@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,6 +21,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -486,11 +488,129 @@ class TransactionControllerIntegrationTests {
                 .contains("\"'=HYPERLINK(\"\"https://example.test\"\")\"");
     }
 
+    @Test
+    void shouldPreviewMappedCsvWithoutPersistingTransactions() throws Exception {
+        String token = registerAndLogin("import-preview@example.test");
+        String categoryId = createCategory(token, "EXPENSE");
+
+        previewRequest(token, "category,amount,currency,rate,date,note,type\r\n"
+                        + categoryId + ",12.3400,EUR,1.08500000,2026-09-16,\"Dinner, home\",EXPENSE\r\n",
+                        validImportMapping())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rows.length()").value(1))
+                .andExpect(jsonPath("$.rows[0].lineNumber").value(2))
+                .andExpect(jsonPath("$.rows[0].description").value("Dinner, home"))
+                .andExpect(jsonPath("$.lineErrors.length()").value(0));
+
+        org.assertj.core.api.Assertions.assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM transactions", Integer.class))
+                .isZero();
+        org.assertj.core.api.Assertions.assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM audit_logs", Integer.class))
+                .isZero();
+    }
+
+    @Test
+    void shouldRejectUnknownImportColumnMapping() throws Exception {
+        String token = registerAndLogin("import-mapping@example.test");
+
+        previewRequest(token, "amount\r\n12.3400\r\n", "{\"columns\":{\"unknown\":\"amount\"}}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.violations[0].field").value("mapping"));
+    }
+
+    @Test
+    void shouldReportInvalidAmountDateAndCurrencyAsLineErrors() throws Exception {
+        String token = registerAndLogin("import-invalid-values@example.test");
+        String categoryId = createCategory(token, "EXPENSE");
+
+        previewRequest(token, "category,amount,currency,rate,date,note,type\n"
+                        + categoryId + ",invalid,eur,1.08500000,16-09-2026,Dinner,EXPENSE\n", validImportMapping())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lineErrors.length()").value(3))
+                .andExpect(jsonPath("$.lineErrors[0].lineNumber").value(2))
+                .andExpect(jsonPath("$.lineErrors[0].field").value("amount"))
+                .andExpect(jsonPath("$.lineErrors[1].field").value("currency"))
+                .andExpect(jsonPath("$.lineErrors[2].field").value("transactionDate"));
+    }
+
+    @Test
+    void shouldRejectCsvImportPreviewAboveConfiguredRowLimit() throws Exception {
+        String token = registerAndLogin("import-limit@example.test");
+        String categoryId = createCategory(token, "EXPENSE");
+        StringBuilder csv = new StringBuilder("category,amount,currency,rate,date,note,type\n");
+        for (int index = 0; index < 102; index++) {
+            csv.append(categoryId).append(",1.00,EUR,1.00000000,2026-09-16,note,EXPENSE\n");
+        }
+
+        previewRequest(token, csv.toString(), validImportMapping())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.violations[0].field").value("file"))
+                .andExpect(jsonPath("$.violations[0].code").value("MAX_ROWS"));
+    }
+
+    @Test
+    void shouldRequireAuthenticationForCsvImportPreview() throws Exception {
+        previewRequest(null, "category,amount,currency,rate,date,type\n", validImportMapping())
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldRejectMissingCsvImportPreviewParts() throws Exception {
+        String token = registerAndLogin("import-missing-parts@example.test");
+
+        mockMvc.perform(multipart("/api/v1/transactions/imports/preview")
+                        .file(new MockMultipartFile("file", "transactions.csv", "text/csv", "header\n".getBytes()))
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.violations[0].field").value("mapping"))
+                .andExpect(jsonPath("$.violations[0].code").value("REQUIRED"));
+        mockMvc.perform(multipart("/api/v1/transactions/imports/preview")
+                        .file(new MockMultipartFile("mapping", "", "application/json",
+                                validImportMapping().getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.violations[0].field").value("file"))
+                .andExpect(jsonPath("$.violations[0].code").value("REQUIRED"));
+    }
+
+    @Test
+    void shouldRejectCsvImportPreviewFileAboveMultipartLimit() throws Exception {
+        String token = registerAndLogin("import-file-limit@example.test");
+        byte[] oversizedCsv = new byte[512 * 1024 + 1];
+        java.util.Arrays.fill(oversizedCsv, (byte) 'a');
+
+        mockMvc.perform(multipart("/api/v1/transactions/imports/preview")
+                        .file(new MockMultipartFile("file", "transactions.csv", "text/csv", oversizedCsv))
+                        .file(new MockMultipartFile("mapping", "", "application/json",
+                                validImportMapping().getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isPayloadTooLarge())
+                .andExpect(jsonPath("$.code").value("PAYLOAD_TOO_LARGE"));
+    }
+
     private org.springframework.test.web.servlet.ResultActions export(String url, String token) throws Exception {
         var result = mockMvc.perform(get(url).header("Authorization", "Bearer " + token))
                 .andExpect(request().asyncStarted())
                 .andReturn();
         return mockMvc.perform(asyncDispatch(result));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions previewRequest(String token, String csv, String mapping) throws Exception {
+        var request = multipart("/api/v1/transactions/imports/preview")
+                .file(new MockMultipartFile("file", "transactions.csv", "text/csv", csv.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                .file(new MockMultipartFile("mapping", "", "application/json", mapping.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        if (token != null) {
+            request.header("Authorization", "Bearer " + token);
+        }
+        return mockMvc.perform(request);
+    }
+
+    private String validImportMapping() {
+        return """
+                {"columns":{"categoryId":"category","amount":"amount","currency":"currency",
+                "exchangeRateToBase":"rate","transactionDate":"date","description":"note","transactionType":"type"}}
+                """;
     }
 
     private String createCategory(String token, String transactionType) throws Exception {

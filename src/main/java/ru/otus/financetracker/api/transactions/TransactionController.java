@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import ru.otus.financetracker.application.transactions.CreateTransactionCommand;
@@ -32,11 +33,15 @@ import ru.otus.financetracker.application.transactions.InvalidTransactionFilterE
 import ru.otus.financetracker.application.transactions.TransactionFilter;
 import ru.otus.financetracker.application.transactions.TransactionExportCursor;
 import ru.otus.financetracker.application.transactions.TransactionService;
+import ru.otus.financetracker.api.transactions.imports.ImportColumnMappingRequest;
+import ru.otus.financetracker.api.transactions.imports.TransactionImportPreviewResponse;
+import ru.otus.financetracker.application.transactions.imports.TransactionImportPreviewService;
 import ru.otus.financetracker.configuration.ApplicationProperties;
 import ru.otus.financetracker.application.transactions.UpdateTransactionCommand;
 import ru.otus.financetracker.domain.categories.TransactionType;
 import ru.otus.financetracker.infrastructure.csv.TransactionCsvWriter;
 import ru.otus.financetracker.shared.PageResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/transactions")
@@ -47,12 +52,15 @@ public class TransactionController {
     private final TransactionService transactionService;
     private final TransactionCsvWriter transactionCsvWriter;
     private final ApplicationProperties applicationProperties;
+    private final TransactionImportPreviewService transactionImportPreviewService;
 
     public TransactionController(TransactionService transactionService, TransactionCsvWriter transactionCsvWriter,
-                                 ApplicationProperties applicationProperties) {
+                                  ApplicationProperties applicationProperties,
+                                  TransactionImportPreviewService transactionImportPreviewService) {
         this.transactionService = transactionService;
         this.transactionCsvWriter = transactionCsvWriter;
         this.applicationProperties = applicationProperties;
+        this.transactionImportPreviewService = transactionImportPreviewService;
     }
 
     @GetMapping(value = "/export", produces = "text/csv")
@@ -101,6 +109,13 @@ public class TransactionController {
         ));
         return ResponseEntity.created(URI.create("/api/v1/transactions/" + transaction.id()))
                 .body(TransactionResponse.from(transaction));
+    }
+
+    @PostMapping(value = "/imports/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    TransactionImportPreviewResponse previewImport(@AuthenticationPrincipal Jwt jwt,
+                                                   @RequestPart("file") MultipartFile file,
+                                                   @Valid @RequestPart("mapping") ImportColumnMappingRequest mapping) {
+        return TransactionImportPreviewResponse.from(transactionImportPreviewService.preview(userId(jwt), file, mapping.columns()));
     }
 
     @GetMapping("/{transactionId}")
