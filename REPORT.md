@@ -71,3 +71,10 @@
 [Промт.](promts/connect-flyway-and-create-identity-schema.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 10
+Реализовать общий HTTP-контракт.
+
+[Промт.](promts/implement-common-http-contract.md)
+
+Данная запись сгенерирована агентом.

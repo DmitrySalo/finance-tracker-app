@@ -8,8 +8,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 import ru.otus.financetracker.shared.web.RequestSizeLimitFilter;
+import ru.otus.financetracker.shared.web.CorrelationIdFilter;
+import ru.otus.financetracker.shared.web.ApiErrorResponseWriter;
 import tools.jackson.databind.JacksonModule;
 import tools.jackson.databind.module.SimpleModule;
 import tools.jackson.databind.ser.std.StdSerializer;
@@ -28,12 +29,17 @@ public class ApplicationConfiguration {
     }
 
     @Bean
-    RequestSizeLimitFilter requestSizeLimitFilter(ApplicationProperties properties) {
-        return new RequestSizeLimitFilter(properties);
+    RequestSizeLimitFilter requestSizeLimitFilter(ApplicationProperties properties, ApiErrorResponseWriter errorResponseWriter) {
+        return new RequestSizeLimitFilter(properties, errorResponseWriter);
     }
 
     @Bean
-    CorsFilter corsFilter(ApplicationProperties properties) {
+    CorrelationIdFilter correlationIdFilter() {
+        return new CorrelationIdFilter();
+    }
+
+    @Bean
+    UrlBasedCorsConfigurationSource corsConfigurationSource(ApplicationProperties properties) {
         var corsConfiguration = new CorsConfiguration();
         corsConfiguration.setAllowedOrigins(properties.cors().allowedOrigins());
         corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
@@ -41,7 +47,7 @@ public class ApplicationConfiguration {
 
         var source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", corsConfiguration);
-        return new CorsFilter(source);
+        return source;
     }
 
     private static final class BigDecimalSerializer extends StdSerializer<BigDecimal> {

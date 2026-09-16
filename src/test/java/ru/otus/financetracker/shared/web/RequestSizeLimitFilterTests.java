@@ -1,6 +1,8 @@
 package ru.otus.financetracker.shared.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
@@ -12,15 +14,20 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.util.unit.DataSize;
 import ru.otus.financetracker.configuration.ApplicationProperties;
+import ru.otus.financetracker.shared.ErrorCode;
 
 class RequestSizeLimitFilterTests {
 
-    private final RequestSizeLimitFilter filter = new RequestSizeLimitFilter(new ApplicationProperties(
-            ZoneOffset.UTC,
-            new ApplicationProperties.Jwt("https://issuer.test", "finance-tracker-test", "test-signing-secret-with-at-least-32-characters"),
-            new ApplicationProperties.Cors(List.of("https://frontend.test")),
-            new ApplicationProperties.Limits(DataSize.ofBytes(4), DataSize.ofBytes(4), 1)
-    ));
+    private final ApiErrorResponseWriter errorResponseWriter = mock(ApiErrorResponseWriter.class);
+    private final RequestSizeLimitFilter filter = new RequestSizeLimitFilter(
+            new ApplicationProperties(
+                    ZoneOffset.UTC,
+                    new ApplicationProperties.Jwt("https://issuer.test", "finance-tracker-test", "test-signing-secret-with-at-least-32-characters"),
+                    new ApplicationProperties.Cors(List.of("https://frontend.test")),
+                    new ApplicationProperties.Limits(DataSize.ofBytes(4), DataSize.ofBytes(4), 1)
+            ),
+            errorResponseWriter
+    );
 
     @Test
     void shouldRejectRequestWhenContentLengthExceedsLimit() throws Exception {
@@ -31,8 +38,9 @@ class RequestSizeLimitFilterTests {
 
         filter.doFilter(request, response, (ignoredRequest, ignoredResponse) -> filterChainInvoked.set(true));
 
-        assertThat(response.getStatus()).isEqualTo(413);
         assertThat(filterChainInvoked).isFalse();
+        verify(errorResponseWriter).write(response, request, 413, ErrorCode.PAYLOAD_TOO_LARGE,
+                "Request body exceeds the allowed size.");
     }
 
     @Test
@@ -49,6 +57,7 @@ class RequestSizeLimitFilterTests {
         filter.doFilter(request, response, (wrappedRequest, ignoredResponse) ->
                 wrappedRequest.getReader().readLine());
 
-        assertThat(response.getStatus()).isEqualTo(413);
+        verify(errorResponseWriter).write(response, request, 413, ErrorCode.PAYLOAD_TOO_LARGE,
+                "Request body exceeds the allowed size.");
     }
 }

@@ -15,13 +15,16 @@ import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.filter.OncePerRequestFilter;
 import ru.otus.financetracker.configuration.ApplicationProperties;
+import ru.otus.financetracker.shared.ErrorCode;
 
 public class RequestSizeLimitFilter extends OncePerRequestFilter {
 
     private final long maxRequestSizeBytes;
+    private final ApiErrorResponseWriter errorResponseWriter;
 
-    public RequestSizeLimitFilter(ApplicationProperties properties) {
+    public RequestSizeLimitFilter(ApplicationProperties properties, ApiErrorResponseWriter errorResponseWriter) {
         this.maxRequestSizeBytes = properties.limits().maxRequestSize().toBytes();
+        this.errorResponseWriter = errorResponseWriter;
     }
 
     @Override
@@ -31,14 +34,16 @@ public class RequestSizeLimitFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         if (request.getContentLengthLong() > maxRequestSizeBytes) {
-            response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
+            errorResponseWriter.write(response, request, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                    ErrorCode.PAYLOAD_TOO_LARGE, "Request body exceeds the allowed size.");
             return;
         }
 
         try {
             filterChain.doFilter(new SizeLimitedRequest(request, maxRequestSizeBytes), response);
         } catch (RequestSizeExceededException exception) {
-            response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
+            errorResponseWriter.write(response, request, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                    ErrorCode.PAYLOAD_TOO_LARGE, "Request body exceeds the allowed size.");
         }
     }
 
@@ -126,6 +131,4 @@ public class RequestSizeLimitFilter extends OncePerRequestFilter {
         }
     }
 
-    private static final class RequestSizeExceededException extends IOException {
-    }
 }
