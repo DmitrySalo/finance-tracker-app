@@ -169,3 +169,10 @@
 [Промт.](promts/implement-recurring-transactions.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 24
+Реализовать экспорт CSV.
+
+[Промт.](promts/implement-transaction-csv-export.md)
+
+Данная запись сгенерирована агентом.

@@ -8,11 +8,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 import ru.otus.financetracker.application.transactions.TransactionFilter;
+import ru.otus.financetracker.application.transactions.TransactionExportCursor;
 import ru.otus.financetracker.application.transactions.TransactionRepository;
 import ru.otus.financetracker.application.transactions.TransactionMonthlyExpenseTotal;
 import ru.otus.financetracker.domain.categories.TransactionType;
@@ -43,6 +45,13 @@ public class JpaTransactionRepository implements TransactionRepository {
     @Override
     public Page<Transaction> findAllByUserId(UUID userId, TransactionFilter filter, Pageable pageable) {
         return transactionJpaRepository.findAll(specification(userId, filter), pageable).map(this::toDomain);
+    }
+
+    @Override
+    public List<Transaction> findExportChunkByUserId(UUID userId, TransactionFilter filter, TransactionExportCursor cursor, int limit) {
+        return transactionJpaRepository.findExportChunk(specification(userId, filter), cursor, limit).stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     @Override
@@ -77,7 +86,14 @@ public class JpaTransactionRepository implements TransactionRepository {
     private Specification<TransactionJpaEntity> specification(UUID userId, TransactionFilter filter) {
         return (root, query, criteriaBuilder) -> {
             var predicates = new ArrayList<Predicate>();
-            predicates.add(criteriaBuilder.equal(root.get("userId"), userId));
+            addFilterPredicates(root, criteriaBuilder, predicates, userId, filter);
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
+    }
+
+    private void addFilterPredicates(Root<TransactionJpaEntity> root, jakarta.persistence.criteria.CriteriaBuilder criteriaBuilder,
+                                     List<Predicate> predicates, UUID userId, TransactionFilter filter) {
+        predicates.add(criteriaBuilder.equal(root.get("userId"), userId));
             if (filter.fromDate() != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("transactionDate"), filter.fromDate()));
             }
@@ -96,8 +112,6 @@ public class JpaTransactionRepository implements TransactionRepository {
             if (filter.transactionType() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("transactionType"), filter.transactionType()));
             }
-            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
-        };
     }
 
     private TransactionJpaEntity toEntity(Transaction transaction) {

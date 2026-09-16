@@ -4,9 +4,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +32,7 @@ import org.testcontainers.utility.DockerImageName;
         "CORS_ALLOWED_ORIGINS=https://frontend.test",
         "MAX_REQUEST_SIZE=1MB",
         "MAX_CSV_FILE_SIZE=512KB",
-        "MAX_CSV_ROWS=100",
+        "MAX_CSV_ROWS=101",
         "MAX_REQUEST_HEADER_SIZE=8KB",
         "REGISTRATION_MAX_ATTEMPTS=100"
 })
@@ -393,6 +395,102 @@ class TransactionControllerIntegrationTests {
         mockMvc.perform(get("/api/v1/transactions?sort=userId,asc").header("Authorization", "Bearer " + token))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    void shouldExportFilteredTransactionsAsProtectedCsvForCurrentUserOnly() throws Exception {
+        String ownerToken = registerAndLogin("export-owner@example.test");
+        String otherToken = registerAndLogin("export-other@example.test");
+        String ownerCategoryId = createCategory(ownerToken, "EXPENSE");
+        String otherCategoryId = createCategory(otherToken, "EXPENSE");
+        createTransaction(ownerToken, ownerCategoryId, "10.00", "2026-09-14", "EXPENSE", "excluded");
+        String transactionId = createTransaction(ownerToken, ownerCategoryId, "12.34", "2026-09-15", "EXPENSE", "formula");
+        mockMvc.perform(patch("/api/v1/transactions/{transactionId}", transactionId)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType("application/json")
+                        .content("{\"version\":0,\"description\":\"=SUM(A1:A2), \\\"quoted\\\"\"}"))
+                .andExpect(status().isOk());
+        createTransaction(otherToken, otherCategoryId, "12.34", "2026-09-15", "EXPENSE", "foreign");
+
+        var response = export("/api/v1/transactions/export?fromDate=2026-09-15&toDate=2026-09-15&minAmount=12.00", ownerToken)
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", "attachment; filename=transactions.csv"))
+                .andExpect(header().string("Content-Type", org.hamcrest.Matchers.startsWith("text/csv;charset=UTF-8")))
+                .andReturn();
+
+        org.assertj.core.api.Assertions.assertThat(response.getResponse().getContentAsString())
+                .isEqualTo("categoryId,amount,currency,exchangeRateToBase,transactionDate,description,transactionType\r\n"
+                        + ownerCategoryId + ",12.3400,EUR,1.08500000,2026-09-15,\"'=SUM(A1:A2), \"\"quoted\"\"\",EXPENSE\r\n");
+    }
+
+    @Test
+    void shouldLimitExportToConfiguredMaximumRows() throws Exception {
+        String token = registerAndLogin("export-limit@example.test");
+        String categoryId = createCategory(token, "EXPENSE");
+        for (int index = 0; index < 102; index++) {
+            createTransaction(token, categoryId, "10.00", "2026-09-15", "EXPENSE", "transaction-" + index);
+        }
+
+        var response = export("/api/v1/transactions/export", token)
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String[] lines = response.getResponse().getContentAsString().split("\\r\\n");
+        org.assertj.core.api.Assertions.assertThat(lines).hasSize(102);
+        org.assertj.core.api.Assertions.assertThat(java.util.Arrays.stream(lines)
+                        .skip(1)
+                        .map(line -> line.split(",")[5]))
+                .doesNotHaveDuplicates()
+                .allSatisfy(description -> org.assertj.core.api.Assertions.assertThat(description)
+                        .matches("transaction-(?:[0-9]|[1-9][0-9]|10[0-1])"));
+    }
+
+    @Test
+    void shouldRejectUnauthenticatedAndInvalidOrForeignExportFilters() throws Exception {
+        String ownerToken = registerAndLogin("export-filter-owner@example.test");
+        String otherToken = registerAndLogin("export-filter-other@example.test");
+        String foreignCategoryId = createCategory(otherToken, "EXPENSE");
+
+        mockMvc.perform(get("/api/v1/transactions/export"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/transactions/export?fromDate=2026-09-16&toDate=2026-09-15")
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        mockMvc.perform(get("/api/v1/transactions/export?minAmount=20.00&maxAmount=10.00")
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        mockMvc.perform(get("/api/v1/transactions/export?categoryId={categoryId}", foreignCategoryId)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void shouldProtectFormulaAfterLeadingWhitespaceInExport() throws Exception {
+        String token = registerAndLogin("export-formula@example.test");
+        String categoryId = createCategory(token, "EXPENSE");
+        String transactionId = createTransaction(token, categoryId, "12.34", "2026-09-15", "EXPENSE", "formula");
+        mockMvc.perform(patch("/api/v1/transactions/{transactionId}", transactionId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("{\"version\":0,\"description\":\"\\t=HYPERLINK(\\\"https://example.test\\\")\"}"))
+                .andExpect(status().isOk());
+
+        var response = export("/api/v1/transactions/export", token)
+                .andExpect(status().isOk())
+                .andReturn();
+
+        org.assertj.core.api.Assertions.assertThat(response.getResponse().getContentAsString())
+                .contains("\"'=HYPERLINK(\"\"https://example.test\"\")\"");
+    }
+
+    private org.springframework.test.web.servlet.ResultActions export(String url, String token) throws Exception {
+        var result = mockMvc.perform(get(url).header("Authorization", "Bearer " + token))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+        return mockMvc.perform(asyncDispatch(result));
     }
 
     private String createCategory(String token, String transactionType) throws Exception {

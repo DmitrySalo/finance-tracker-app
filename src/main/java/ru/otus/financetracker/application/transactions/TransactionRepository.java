@@ -18,6 +18,8 @@ public interface TransactionRepository {
 
     Page<Transaction> findAllByUserId(UUID userId, TransactionFilter filter, Pageable pageable);
 
+    List<Transaction> findExportChunkByUserId(UUID userId, TransactionFilter filter, TransactionExportCursor cursor, int limit);
+
     BigDecimal sumExpenseAmountInBaseCurrency(UUID userId, UUID categoryId, LocalDate fromInclusive, LocalDate toExclusive);
 
     List<TransactionMonthlyExpenseTotal> sumExpenseAmountsInBaseCurrencyByMonth(UUID userId, List<UUID> categoryIds,

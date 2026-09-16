@@ -2,6 +2,7 @@ package ru.otus.financetracker.application.transactions;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -23,7 +24,7 @@ public class TransactionService {
     private final Clock clock;
 
     public TransactionService(TransactionRepository transactionRepository, CategoryRepository categoryRepository,
-                              TransactionAuditService transactionAuditService, Clock clock) {
+                               TransactionAuditService transactionAuditService, Clock clock) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
         this.transactionAuditService = transactionAuditService;
@@ -93,12 +94,26 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public Page<Transaction> list(UUID userId, TransactionFilter filter, Pageable pageable) {
+        validateAndAuthorizeFilter(userId, filter);
+        return transactionRepository.findAllByUserId(userId, filter, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public void validateExport(UUID userId, TransactionFilter filter) {
+        validateAndAuthorizeFilter(userId, filter);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Transaction> exportChunk(UUID userId, TransactionFilter filter, TransactionExportCursor cursor, int chunkSize) {
+        return transactionRepository.findExportChunkByUserId(userId, filter, cursor, chunkSize);
+    }
+
+    private void validateAndAuthorizeFilter(UUID userId, TransactionFilter filter) {
         validateFilter(filter);
         if (filter.categoryId() != null) {
             categoryRepository.findByIdAndUserId(filter.categoryId(), userId)
                     .orElseThrow(ResourceNotFoundException::new);
         }
-        return transactionRepository.findAllByUserId(userId, filter, pageable);
     }
 
     private void validateFilter(TransactionFilter filter) {

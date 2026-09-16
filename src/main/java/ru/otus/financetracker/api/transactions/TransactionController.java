@@ -2,6 +2,8 @@ package ru.otus.financetracker.api.transactions;
 
 import java.net.URI;
 import java.math.BigDecimal;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -11,6 +13,8 @@ import jakarta.validation.constraints.Min;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,22 +26,71 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import ru.otus.financetracker.application.transactions.CreateTransactionCommand;
 import ru.otus.financetracker.application.transactions.InvalidTransactionFilterException;
 import ru.otus.financetracker.application.transactions.TransactionFilter;
+import ru.otus.financetracker.application.transactions.TransactionExportCursor;
 import ru.otus.financetracker.application.transactions.TransactionService;
+import ru.otus.financetracker.configuration.ApplicationProperties;
 import ru.otus.financetracker.application.transactions.UpdateTransactionCommand;
 import ru.otus.financetracker.domain.categories.TransactionType;
+import ru.otus.financetracker.infrastructure.csv.TransactionCsvWriter;
 import ru.otus.financetracker.shared.PageResponse;
 
 @RestController
 @RequestMapping("/api/v1/transactions")
 public class TransactionController {
 
-    private final TransactionService transactionService;
+    private static final int EXPORT_CHUNK_SIZE = 100;
 
-    public TransactionController(TransactionService transactionService) {
+    private final TransactionService transactionService;
+    private final TransactionCsvWriter transactionCsvWriter;
+    private final ApplicationProperties applicationProperties;
+
+    public TransactionController(TransactionService transactionService, TransactionCsvWriter transactionCsvWriter,
+                                 ApplicationProperties applicationProperties) {
         this.transactionService = transactionService;
+        this.transactionCsvWriter = transactionCsvWriter;
+        this.applicationProperties = applicationProperties;
+    }
+
+    @GetMapping(value = "/export", produces = "text/csv")
+    ResponseEntity<StreamingResponseBody> export(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) TransactionType transactionType
+    ) {
+        UUID userId = userId(jwt);
+        var filter = new TransactionFilter(fromDate, toDate, categoryId, minAmount, maxAmount, transactionType);
+        transactionService.validateExport(userId, filter);
+        StreamingResponseBody body = outputStream -> {
+            var writer = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
+            transactionCsvWriter.writeHeader(writer);
+            int exportedRows = 0;
+            TransactionExportCursor cursor = null;
+            while (exportedRows < applicationProperties.limits().maxCsvRows()) {
+                int remainingRows = applicationProperties.limits().maxCsvRows() - exportedRows;
+                var transactions = transactionService.exportChunk(userId, filter, cursor,
+                        Math.min(remainingRows, EXPORT_CHUNK_SIZE));
+                if (transactions.isEmpty()) {
+                    break;
+                }
+                transactionCsvWriter.writeTransactions(writer, transactions);
+                exportedRows += transactions.size();
+                var lastTransaction = transactions.getLast();
+                cursor = new TransactionExportCursor(lastTransaction.transactionDate(), lastTransaction.id());
+            }
+            writer.flush();
+        };
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=transactions.csv")
+                .contentType(new MediaType("text", "csv", java.nio.charset.StandardCharsets.UTF_8))
+                .body(body);
     }
 
     @PostMapping
