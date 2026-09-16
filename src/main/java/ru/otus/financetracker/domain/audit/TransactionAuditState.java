@@ -14,5 +14,5 @@ public record TransactionAuditState(
         LocalDate transactionDate,
         String description,
         TransactionType transactionType
-) {
+) implements AuditState {
 }

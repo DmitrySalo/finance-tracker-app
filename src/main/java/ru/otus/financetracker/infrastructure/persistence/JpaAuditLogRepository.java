@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import ru.otus.financetracker.application.audit.AuditLogRepository;
 import ru.otus.financetracker.domain.audit.AuditLog;
+import ru.otus.financetracker.domain.audit.AuditState;
+import ru.otus.financetracker.domain.audit.BudgetAuditState;
 import ru.otus.financetracker.domain.audit.TransactionAuditState;
 
 @Repository
@@ -25,10 +27,17 @@ public class JpaAuditLogRepository implements AuditLogRepository {
         ));
     }
 
-    private JsonNode toJson(TransactionAuditState state) {
+    private JsonNode toJson(AuditState state) {
         if (state == null) {
             return null;
         }
+        if (state instanceof TransactionAuditState transactionState) {
+            return transactionStateToJson(transactionState);
+        }
+        return budgetStateToJson((BudgetAuditState) state);
+    }
+
+    private JsonNode transactionStateToJson(TransactionAuditState state) {
         ObjectNode node = JsonNodeFactory.instance.objectNode();
         node.put("categoryId", state.categoryId().toString());
         node.put("amount", state.amount().toPlainString());
@@ -41,6 +50,15 @@ public class JpaAuditLogRepository implements AuditLogRepository {
             node.put("description", state.description());
         }
         node.put("transactionType", state.transactionType().name());
+        return node;
+    }
+
+    private JsonNode budgetStateToJson(BudgetAuditState state) {
+        ObjectNode node = JsonNodeFactory.instance.objectNode();
+        node.put("categoryId", state.categoryId().toString());
+        node.put("budgetMonth", state.budgetMonth().toString());
+        node.put("limitAmount", state.limitAmount().toPlainString());
+        node.put("currency", state.currency());
         return node;
     }
 }

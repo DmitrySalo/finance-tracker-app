@@ -10,7 +10,7 @@ public record AuditLog(
         UUID entityId,
         AuditAction action,
         Instant occurredAt,
-        TransactionAuditState beforeState,
-        TransactionAuditState afterState
+        AuditState beforeState,
+        AuditState afterState
 ) {
 }
