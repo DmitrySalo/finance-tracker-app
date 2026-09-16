@@ -6,6 +6,7 @@ import { NotFoundPage } from "../pages/NotFoundPage";
 import { ProtectedPage } from "../pages/ProtectedPage";
 import { RegisterPage } from "../pages/RegisterPage";
 import { CategoriesManager } from "../features/categories/components/CategoriesManager";
+import { BudgetsManager } from "../features/budgets/components/BudgetsManager";
 import { TransactionsManager } from "../features/transactions/components/TransactionsManager";
 import { AppShell } from "./AppShell";
 
@@ -32,7 +33,7 @@ export function AppRouter() {
         <Route element={<RegisterPage />} path="/register" />
         <Route element={<ProtectedRoute />}>
           {protectedRoutes.map(([path, title]) => (
-            <Route element={path === "categories" ? <CategoriesManager /> : path === "transactions" ? <TransactionsManager /> : <ProtectedPage title={title} />} key={path} path={path} />
+            <Route element={path === "categories" ? <CategoriesManager /> : path === "transactions" ? <TransactionsManager /> : path === "budgets" ? <BudgetsManager /> : <ProtectedPage title={title} />} key={path} path={path} />
           ))}
         </Route>
         <Route element={<NotFoundPage />} path="*" />

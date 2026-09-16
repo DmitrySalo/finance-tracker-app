@@ -1,5 +1,5 @@
 import { apiRequest, apiRequestVoid } from "../../../shared/api/client";
-import type { LoginResponse } from "../../../shared/api/models";
+import type { CurrentUser, LoginResponse } from "../../../shared/api/models";
 
 export interface LoginCredentials {
   email: string;
@@ -27,4 +27,8 @@ export function register(details: RegistrationDetails): Promise<void> {
     body: JSON.stringify(details),
     headers: { "Content-Type": "application/json" },
   });
+}
+
+export function getCurrentUser(signal?: AbortSignal): Promise<CurrentUser> {
+  return apiRequest<CurrentUser>("/auth/me", { signal });
 }

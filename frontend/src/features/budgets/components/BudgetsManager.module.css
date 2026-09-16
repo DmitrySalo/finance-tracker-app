@@ -1,0 +1,28 @@
+.page { display: grid; gap: var(--space-6); max-width: 54rem; }
+.header, .budgetHeader { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.header h1, .header p, .form h2 { margin: 0; }
+.header p { margin-top: var(--space-2); color: var(--color-text-muted); }
+.monthPicker, .field { display: grid; gap: var(--space-2); font-weight: 600; }
+.monthPicker { width: fit-content; }
+.monthPicker input, .field input, .field select { width: 100%; padding: var(--space-3); color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+.field input[aria-invalid="true"], .field select[aria-invalid="true"] { border-color: #b42318; }
+.form, .list, .empty { padding: var(--space-6); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }
+.form, .list, .budget, .progressGroup { display: grid; gap: var(--space-4); }
+.list { margin: 0; list-style: none; }
+.budget { padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); }
+.budget:last-child { padding-bottom: 0; border-bottom: 0; }
+.actions, .rowActions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.primaryButton, .secondaryButton, .dangerButton, .rowActions button { padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); cursor: pointer; font-weight: 700; }
+.primaryButton { color: var(--color-on-primary); background: var(--color-primary); border: 0; }
+.secondaryButton, .rowActions button { color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); }
+.dangerButton { color: #ffffff; background: #b42318; border: 0; }
+.primaryButton:disabled, .secondaryButton:disabled, .dangerButton:disabled { cursor: wait; opacity: 0.7; }
+.fieldError, .formError { margin: 0; color: #b42318; }
+.progress { height: 1rem; overflow: hidden; background: var(--color-surface-muted); border-radius: var(--radius-sm); }
+.progressFill { display: block; height: 100%; background: var(--color-primary); border-radius: inherit; }
+.progressFillOver { display: block; height: 100%; background: #b42318; border-radius: inherit; }
+.values { margin: 0; color: var(--color-text-muted); }
+.dialogBackdrop { position: fixed; inset: 0; display: grid; padding: var(--page-padding); background: rgb(23 32 51 / 45%); place-items: center; }
+.dialog { width: min(100%, 30rem); padding: var(--space-6); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }
+.dialog h2 { margin-top: 0; }
+@media (max-width: 40rem) { .header, .budgetHeader { align-items: stretch; flex-direction: column; } .header .primaryButton { width: 100%; } .rowActions button { flex: 1; } }

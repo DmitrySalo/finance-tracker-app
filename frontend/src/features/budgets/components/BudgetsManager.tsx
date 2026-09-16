@@ -1,0 +1,218 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
+import { useForm } from "react-hook-form";
+import type { UseFormSetError } from "react-hook-form";
+import { z } from "zod";
+import { categoryQueryKey, listCategories } from "../../categories/api/categoriesApi";
+import { ApiClientError } from "../../../shared/api/client";
+import type { Budget, Category } from "../../../shared/api/models";
+import { useNotifications } from "../../../shared/notifications/useNotifications";
+import { getCurrentUser } from "../../auth/api/authApi";
+import { budgetQueryKey, createBudget, deleteBudget, listAllBudgets, updateBudget } from "../api/budgetsApi";
+import type { BudgetInput } from "../api/budgetsApi";
+import styles from "./BudgetsManager.module.css";
+
+const budgetSchema = z.object({
+  categoryId: z.string().uuid("Select an expense category."),
+  budgetMonth: z.string().regex(/^\d{4}-\d{2}$/, "Select a budget month."),
+  limitAmount: z.string().regex(/^\d{1,15}(?:\.\d{1,4})?$/, "Enter a positive amount with up to 4 decimal places.").refine((value) => Number(value) > 0, "Enter a positive amount."),
+  currency: z.string().regex(/^[A-Z]{3}$/, "Use a three-letter uppercase currency code."),
+});
+
+type BudgetFormValues = z.infer<typeof budgetSchema>;
+
+function currentMonth(): string {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+}
+
+async function listAllCategories(signal?: AbortSignal): Promise<Category[]> {
+  const categories: Category[] = [];
+  let page = 0;
+  do {
+    const response = await listCategories(page, signal, 100);
+    categories.push(...response.items);
+    page += 1;
+    if (page >= response.page.totalPages) return categories;
+  } while (!signal?.aborted);
+  return categories;
+}
+
+function formValues(budget: Budget): BudgetFormValues {
+  return { categoryId: budget.categoryId, budgetMonth: budget.budgetMonth.slice(0, 7), limitAmount: budget.limitAmount, currency: budget.currency };
+}
+
+function toBudgetInput(values: BudgetFormValues): BudgetInput {
+  return { ...values, budgetMonth: `${values.budgetMonth}-01` };
+}
+
+function applyServerViolations(error: unknown, setError: UseFormSetError<BudgetFormValues>): void {
+  if (!(error instanceof ApiClientError) || error.apiError.code !== "VALIDATION_FAILED") return;
+  error.apiError.violations.forEach((violation) => {
+    if (violation.field === "categoryId" || violation.field === "budgetMonth" || violation.field === "limitAmount" || violation.field === "currency") {
+      setError(violation.field, { type: "server", message: violation.message });
+    }
+  });
+}
+
+function errorMessage(error: unknown, operation: "delete" | "save"): string {
+  return error instanceof ApiClientError ? error.apiError.message : `We could not ${operation} the budget. Please try again.`;
+}
+
+interface BudgetFormProps {
+  budget: Budget | null;
+  categories: Category[];
+  categoriesFailed: boolean;
+  defaultMonth: string;
+  onCancel: () => void;
+  onSaved: () => void;
+}
+
+function BudgetForm({ budget, categories, categoriesFailed, defaultMonth, onCancel, onSaved }: BudgetFormProps) {
+  const { notify } = useNotifications();
+  const queryClient = useQueryClient();
+  const currentUserQuery = useQuery({
+    enabled: budget === null,
+    queryKey: ["current-user"],
+    queryFn: ({ signal }) => getCurrentUser(signal),
+  });
+  const { formState: { errors, isSubmitting }, handleSubmit, register, setError, setValue } = useForm<BudgetFormValues>({
+    defaultValues: budget === null ? { categoryId: "", budgetMonth: defaultMonth, limitAmount: "", currency: "" } : formValues(budget),
+    resolver: zodResolver(budgetSchema),
+  });
+  const mutation = useMutation({
+    mutationFn: (values: BudgetFormValues) => budget === null ? createBudget(toBudgetInput(values)) : updateBudget(budget, toBudgetInput(values)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: budgetQueryKey });
+      notify(budget === null ? "Budget created." : "Budget updated.");
+      onSaved();
+    },
+  });
+
+  async function onSubmit(values: BudgetFormValues): Promise<void> {
+    if (budget === null && currentUserQuery.data === undefined) return;
+
+    try {
+      await mutation.mutateAsync(values);
+    } catch (error) {
+      applyServerViolations(error, setError);
+    }
+  }
+
+  useEffect(() => {
+    if (budget === null && currentUserQuery.data !== undefined) {
+      setValue("currency", currentUserQuery.data.baseCurrency, { shouldValidate: true });
+    }
+  }, [budget, currentUserQuery.data, setValue]);
+
+  const expenseCategories = categories.filter((category) => category.transactionType === "EXPENSE");
+  return <form className={styles.form} noValidate onSubmit={handleSubmit(onSubmit)}>
+    <h2>{budget === null ? "New budget" : "Edit budget"}</h2>
+    <div className={styles.field}><label htmlFor="budget-category">Expense category</label><select aria-describedby={errors.categoryId ? "budget-category-error" : undefined} aria-invalid={Boolean(errors.categoryId)} id="budget-category" {...register("categoryId")}><option value="">Select an expense category</option>{expenseCategories.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.name}</option>)}</select>{categoriesFailed && <p className={styles.fieldError} role="alert">We could not load expense categories. Please try again.</p>}{errors.categoryId && <p className={styles.fieldError} id="budget-category-error" role="alert">{errors.categoryId.message}</p>}</div>
+    <Field error={errors.budgetMonth?.message} label="Month" name="budgetMonth" register={register} type="month" />
+    <Field error={errors.limitAmount?.message} label="Limit amount" name="limitAmount" register={register} type="text" />
+    <Field error={errors.currency?.message} label="Currency" name="currency" readOnly register={register} type="text" />
+    {budget === null && currentUserQuery.isPending && <p role="status">Loading your base currency…</p>}
+    {budget === null && currentUserQuery.isError && <p className={styles.formError} role="alert">We could not load your base currency. Please try again.</p>}
+    {mutation.isError && !(mutation.error instanceof ApiClientError && mutation.error.apiError.code === "VALIDATION_FAILED") && <p className={styles.formError} role="alert">{errorMessage(mutation.error, "save")}</p>}
+    <div className={styles.actions}><button className={styles.primaryButton} disabled={isSubmitting || (budget === null && currentUserQuery.data === undefined)} type="submit">{isSubmitting ? "Saving…" : "Save budget"}</button><button className={styles.secondaryButton} disabled={isSubmitting} onClick={onCancel} type="button">Cancel</button></div>
+  </form>;
+}
+
+function Field({ error, label, name, readOnly = false, register, type }: { error: string | undefined; label: string; name: "budgetMonth" | "limitAmount" | "currency"; readOnly?: boolean; register: ReturnType<typeof useForm<BudgetFormValues>>["register"]; type: "month" | "text" }) {
+  const id = `budget-${name}`;
+  return <div className={styles.field}><label htmlFor={id}>{label}</label><input aria-describedby={error ? `${id}-error` : undefined} aria-invalid={Boolean(error)} id={id} readOnly={readOnly} type={type} {...register(name)} />{error && <p className={styles.fieldError} id={`${id}-error`} role="alert">{error}</p>}</div>;
+}
+
+function BudgetProgress({ budget }: { budget: Budget }) {
+  const percentage = Number(budget.percentage);
+  const progress = Number.isFinite(percentage) ? Math.max(0, percentage) : 0;
+  const displayedProgress = Math.min(progress, 100);
+  const accessibleText = `${budget.percentage}% of budget used. Spent ${budget.spentAmount} ${budget.currency} of ${budget.limitAmount} ${budget.currency}; ${budget.remainingAmount} ${budget.currency} remaining.`;
+  const status = progress > 100 ? "Over budget" : progress === 100 ? "Budget reached" : "Budget available";
+
+  return <div className={styles.progressGroup}>
+    <div aria-label="Budget progress" aria-valuemax={100} aria-valuemin={0} aria-valuenow={displayedProgress} aria-valuetext={accessibleText} className={styles.progress} role="progressbar"><span className={progress > 100 ? styles.progressFillOver : styles.progressFill} style={{ width: `${displayedProgress}%` }} /></div>
+    <p className={styles.values}>{budget.spentAmount} {budget.currency} spent of {budget.limitAmount} {budget.currency} · {budget.remainingAmount} {budget.currency} remaining · <strong>{status} ({budget.percentage}%)</strong></p>
+  </div>;
+}
+
+interface DeleteConfirmationProps {
+  budget: Budget;
+  onCancel: () => void;
+  onDeleted: () => void;
+  returnFocusTo: RefObject<HTMLButtonElement | null>;
+}
+
+function DeleteConfirmation({ budget, onCancel, onDeleted, returnFocusTo }: DeleteConfirmationProps) {
+  const cancelButton = useRef<HTMLButtonElement>(null);
+  const dialog = useRef<HTMLElement>(null);
+  const deletedSuccessfully = useRef(false);
+  const mutation = useMutation({ mutationFn: () => deleteBudget(budget), onSuccess: () => { deletedSuccessfully.current = true; onDeleted(); } });
+
+  useEffect(() => {
+    const returnFocusElement = returnFocusTo.current;
+    cancelButton.current?.focus();
+    return () => {
+      if (!deletedSuccessfully.current) returnFocusElement?.focus();
+    };
+  }, [returnFocusTo]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === "Escape") {
+        if (mutation.isPending) return;
+        event.preventDefault();
+        onCancel();
+        return;
+      }
+      if (event.key !== "Tab" || dialog.current === null) return;
+
+      if (mutation.isPending) {
+        event.preventDefault();
+        dialog.current.focus();
+        return;
+      }
+
+      const buttons = dialog.current.querySelectorAll<HTMLButtonElement>("button:not(:disabled)");
+      const first = buttons[0];
+      const last = buttons[buttons.length - 1];
+      if (first === undefined || last === undefined) return;
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mutation.isPending, onCancel]);
+
+  return <div className={styles.dialogBackdrop}><section aria-describedby="delete-budget-description" aria-labelledby="delete-budget-title" aria-modal="true" className={styles.dialog} ref={dialog} role="dialog" tabIndex={-1}><h2 id="delete-budget-title">Delete budget?</h2><p id="delete-budget-description">Delete this budget? This action cannot be undone.</p>{mutation.isError && <p className={styles.formError} role="alert">{errorMessage(mutation.error, "delete")}</p>}<div className={styles.actions}><button className={styles.dangerButton} disabled={mutation.isPending} onClick={() => mutation.mutate()} type="button">{mutation.isPending ? "Deleting…" : "Delete budget"}</button><button className={styles.secondaryButton} disabled={mutation.isPending} onClick={onCancel} ref={cancelButton} type="button">Cancel</button></div></section></div>;
+}
+
+export function BudgetsManager() {
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [editedBudget, setEditedBudget] = useState<Budget | null | undefined>(undefined);
+  const [deletedBudget, setDeletedBudget] = useState<Budget | null>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
+  const deleteButton = useRef<HTMLButtonElement>(null);
+  const { notify } = useNotifications();
+  const queryClient = useQueryClient();
+  const budgetsQuery = useQuery({ queryKey: budgetQueryKey, queryFn: ({ signal }) => listAllBudgets(signal) });
+  const categoriesQuery = useQuery({ queryKey: [...categoryQueryKey, "all"], queryFn: ({ signal }) => listAllCategories(signal) });
+  const budgets = budgetsQuery.data?.filter((budget) => budget.budgetMonth.slice(0, 7) === selectedMonth) ?? [];
+
+  return <section className={styles.page}>
+    <header className={styles.header}><div><h1>Budgets</h1><p>Set monthly spending limits for your expense categories.</p></div><button className={styles.primaryButton} onClick={() => setEditedBudget(null)} ref={addButton} type="button">Add budget</button></header>
+    <div className={styles.monthPicker}><label htmlFor="budget-month-picker">Month</label><input id="budget-month-picker" onChange={(event) => setSelectedMonth(event.target.value)} type="month" value={selectedMonth} /></div>
+    {editedBudget !== undefined && <BudgetForm budget={editedBudget} categories={categoriesQuery.data ?? []} categoriesFailed={categoriesQuery.isError} defaultMonth={selectedMonth} key={editedBudget?.id ?? "new"} onCancel={() => setEditedBudget(undefined)} onSaved={() => setEditedBudget(undefined)} />}
+    {budgetsQuery.isPending && <p role="status">Loading budgets…</p>}
+    {budgetsQuery.isError && <p className={styles.formError} role="alert">We could not load budgets. Please refresh the page.</p>}
+    {budgetsQuery.data !== undefined && budgets.length === 0 && <p className={styles.empty}>No budgets for this month. Add one to track your spending.</p>}
+    {budgets.length > 0 && <ul className={styles.list}>{budgets.map((budget) => {
+      const category = categoriesQuery.data?.find((item) => item.id === budget.categoryId);
+       return <li className={styles.budget} key={budget.id}><div className={styles.budgetHeader}><div><strong>{category ? `${category.icon} ${category.name}` : "Expense category"}</strong><p className={styles.values}>{budget.budgetMonth}</p></div><div className={styles.rowActions}><button onClick={() => setEditedBudget(budget)} type="button">Edit budget</button><button onClick={(event) => { deleteButton.current = event.currentTarget; setDeletedBudget(budget); }} type="button">Delete budget</button></div></div><BudgetProgress budget={budget} /></li>;
+    })}</ul>}
+    {deletedBudget !== null && <DeleteConfirmation budget={deletedBudget} onCancel={() => setDeletedBudget(null)} onDeleted={() => { void queryClient.invalidateQueries({ queryKey: budgetQueryKey }); notify("Budget deleted."); setDeletedBudget(null); requestAnimationFrame(() => addButton.current?.focus()); }} returnFocusTo={deleteButton} />}
+  </section>;
+}
