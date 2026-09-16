@@ -51,3 +51,9 @@
 
 [Промт.](promts/add-fine-tuning-subagents.md)
 
+### Шаг 7
+Обновить основу backend.
+
+[Промт.](promts/update-backend-foundation.md)
+
+Данная запись сгенерирована агентом.
