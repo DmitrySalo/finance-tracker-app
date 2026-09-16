@@ -204,3 +204,10 @@
 [Промт.](promts/initialize-frontend.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 29
+Построить frontend foundation.
+
+[Промт.](promts/build-frontend-foundation.md)
+
+Данная запись сгенерирована агентом.
