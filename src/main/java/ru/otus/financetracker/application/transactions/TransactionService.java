@@ -42,7 +42,7 @@ public class TransactionService {
         var transaction = transactionRepository.save(new Transaction(
                 UUID.randomUUID(), userId, category.id(), command.amount(), command.currency(), command.exchangeRateToBase(),
                 command.transactionDate(), command.description() == null ? null : command.description().strip(),
-                command.transactionType(), now, now, 0
+                command.transactionType(), null, now, now, 0
         ));
         transactionAuditService.recordCreate(userId, transaction);
         return transaction;
@@ -74,7 +74,7 @@ public class TransactionService {
                 command.currency() == null ? transaction.currency() : command.currency(),
                 command.exchangeRateToBase() == null ? transaction.exchangeRateToBase() : command.exchangeRateToBase(),
                 command.transactionDate() == null ? transaction.transactionDate() : command.transactionDate(),
-                command.description() == null ? transaction.description() : command.description().strip(), transactionType,
+                command.description() == null ? transaction.description() : command.description().strip(), transactionType, transaction.recurringTransactionId(),
                 transaction.createdAt(), clock.instant(), transaction.version()
         ));
         transactionAuditService.recordUpdate(userId, transaction, updatedTransaction);

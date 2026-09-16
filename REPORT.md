@@ -162,3 +162,10 @@
 [Промт.](promts/implement-dashboard-api.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 23
+Реализовать recurring transactions.
+
+[Промт.](promts/implement-recurring-transactions.md)
+
+Данная запись сгенерирована агентом.

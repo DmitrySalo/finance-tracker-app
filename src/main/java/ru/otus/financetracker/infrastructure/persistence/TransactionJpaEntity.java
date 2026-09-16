@@ -49,6 +49,9 @@ public class TransactionJpaEntity {
     @Column(name = "transaction_type", nullable = false, length = 7)
     private TransactionType transactionType;
 
+    @Column(name = "recurring_transaction_id")
+    private UUID recurringTransactionId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -62,8 +65,8 @@ public class TransactionJpaEntity {
     }
 
     TransactionJpaEntity(UUID id, UUID userId, UUID categoryId, BigDecimal amount, String currency,
-                         BigDecimal exchangeRateToBase, LocalDate transactionDate, String description,
-                         TransactionType transactionType, Instant createdAt, Instant updatedAt, long version) {
+                          BigDecimal exchangeRateToBase, LocalDate transactionDate, String description,
+                          TransactionType transactionType, UUID recurringTransactionId, Instant createdAt, Instant updatedAt, long version) {
         this.id = id;
         this.userId = userId;
         this.categoryId = categoryId;
@@ -73,6 +76,7 @@ public class TransactionJpaEntity {
         this.transactionDate = transactionDate;
         this.description = description;
         this.transactionType = transactionType;
+        this.recurringTransactionId = recurringTransactionId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.version = version;
@@ -87,6 +91,7 @@ public class TransactionJpaEntity {
     LocalDate getTransactionDate() { return transactionDate; }
     String getDescription() { return description; }
     TransactionType getTransactionType() { return transactionType; }
+    UUID getRecurringTransactionId() { return recurringTransactionId; }
     Instant getCreatedAt() { return createdAt; }
     Instant getUpdatedAt() { return updatedAt; }
     long getVersion() { return version; }

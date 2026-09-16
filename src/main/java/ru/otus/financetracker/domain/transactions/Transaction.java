@@ -17,6 +17,7 @@ public record Transaction(
         LocalDate transactionDate,
         String description,
         TransactionType transactionType,
+        UUID recurringTransactionId,
         Instant createdAt,
         Instant updatedAt,
         long version

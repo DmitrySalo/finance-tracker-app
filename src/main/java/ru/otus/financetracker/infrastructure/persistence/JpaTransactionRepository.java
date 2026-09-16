@@ -104,7 +104,7 @@ public class JpaTransactionRepository implements TransactionRepository {
         return new TransactionJpaEntity(
                 transaction.id(), transaction.userId(), transaction.categoryId(), transaction.amount(), transaction.currency(),
                 transaction.exchangeRateToBase(), transaction.transactionDate(), transaction.description(),
-                transaction.transactionType(), transaction.createdAt(), transaction.updatedAt(), transaction.version()
+                transaction.transactionType(), transaction.recurringTransactionId(), transaction.createdAt(), transaction.updatedAt(), transaction.version()
         );
     }
 
@@ -112,7 +112,7 @@ public class JpaTransactionRepository implements TransactionRepository {
         return new Transaction(
                 entity.getId(), entity.getUserId(), entity.getCategoryId(), entity.getAmount(), entity.getCurrency(),
                 entity.getExchangeRateToBase(), entity.getTransactionDate(), entity.getDescription(), entity.getTransactionType(),
-                entity.getCreatedAt(), entity.getUpdatedAt(), entity.getVersion()
+                entity.getRecurringTransactionId(), entity.getCreatedAt(), entity.getUpdatedAt(), entity.getVersion()
         );
     }
 }

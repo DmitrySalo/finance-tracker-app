@@ -41,6 +41,8 @@ import ru.otus.financetracker.application.transactions.TransactionRepository;
 import ru.otus.financetracker.application.audit.AuditLogRepository;
 import ru.otus.financetracker.application.budgets.BudgetRepository;
 import ru.otus.financetracker.application.dashboard.DashboardRepository;
+import ru.otus.financetracker.application.recurring.RecurringTransactionOccurrenceRepository;
+import ru.otus.financetracker.application.recurring.RecurringTransactionRepository;
 
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude="
@@ -84,6 +86,12 @@ class ApiContractIntegrationTests {
 
     @MockitoBean
     private DashboardRepository dashboardRepository;
+
+    @MockitoBean
+    private RecurringTransactionRepository recurringTransactionRepository;
+
+    @MockitoBean
+    private RecurringTransactionOccurrenceRepository recurringTransactionOccurrenceRepository;
 
     @Autowired
     private MockMvc mockMvc;

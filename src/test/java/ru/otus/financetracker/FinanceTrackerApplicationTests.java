@@ -21,6 +21,8 @@ import ru.otus.financetracker.application.transactions.TransactionRepository;
 import ru.otus.financetracker.application.audit.AuditLogRepository;
 import ru.otus.financetracker.application.budgets.BudgetRepository;
 import ru.otus.financetracker.application.dashboard.DashboardRepository;
+import ru.otus.financetracker.application.recurring.RecurringTransactionOccurrenceRepository;
+import ru.otus.financetracker.application.recurring.RecurringTransactionRepository;
 import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest(properties = {
@@ -63,6 +65,12 @@ class FinanceTrackerApplicationTests {
 
     @MockitoBean
     private DashboardRepository dashboardRepository;
+
+    @MockitoBean
+    private RecurringTransactionRepository recurringTransactionRepository;
+
+    @MockitoBean
+    private RecurringTransactionOccurrenceRepository recurringTransactionOccurrenceRepository;
 
     private final Clock clock;
     private final ObjectMapper objectMapper;
