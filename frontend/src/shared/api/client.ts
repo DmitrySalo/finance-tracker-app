@@ -1,4 +1,4 @@
-import { getAccessToken } from "./accessToken";
+import { getAccessToken, setAccessToken } from "./accessToken";
 import type { ApiError, ApiErrorCode } from "./models";
 
 const API_BASE_PATH = "/api/v1";
@@ -58,13 +58,15 @@ async function parseError(response: Response): Promise<ApiError> {
 
 export interface ApiRequestOptions extends Omit<RequestInit, "body" | "headers"> {
   body?: BodyInit | null;
+  clearSessionOnUnauthorized?: boolean;
   headers?: HeadersInit;
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  const response = await sendRequest(path, options);
+  const { clearSessionOnUnauthorized = true, response, token } = await sendRequest(path, options);
 
   if (!response.ok) {
+    clearExpiredSession(response.status, token, clearSessionOnUnauthorized);
     throw new ApiClientError(response.status, await parseError(response));
   }
 
@@ -72,15 +74,25 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 }
 
 export async function apiRequestVoid(path: string, options: ApiRequestOptions = {}): Promise<void> {
-  const response = await sendRequest(path, options);
+  const { clearSessionOnUnauthorized = true, response, token } = await sendRequest(path, options);
 
   if (!response.ok) {
+    clearExpiredSession(response.status, token, clearSessionOnUnauthorized);
     throw new ApiClientError(response.status, await parseError(response));
   }
 }
 
-async function sendRequest(path: string, options: ApiRequestOptions): Promise<Response> {
-  const { body, headers, ...requestOptions } = options;
+function clearExpiredSession(status: number, token: string | null, clearSessionOnUnauthorized: boolean): void {
+  if (clearSessionOnUnauthorized && status === 401 && token !== null && getAccessToken() === token) {
+    setAccessToken(null);
+  }
+}
+
+async function sendRequest(
+  path: string,
+  options: ApiRequestOptions,
+): Promise<{ clearSessionOnUnauthorized: boolean | undefined; response: Response; token: string | null }> {
+  const { body, clearSessionOnUnauthorized, headers, ...requestOptions } = options;
   const requestHeaders = new Headers(headers);
   const token = getAccessToken();
 
@@ -88,9 +100,11 @@ async function sendRequest(path: string, options: ApiRequestOptions): Promise<Re
     requestHeaders.set("Authorization", `Bearer ${token}`);
   }
 
-  return fetch(`${API_BASE_PATH}${path}`, {
+  const response = await fetch(`${API_BASE_PATH}${path}`, {
     ...requestOptions,
     body,
     headers: requestHeaders,
   });
+
+  return { clearSessionOnUnauthorized, response, token };
 }

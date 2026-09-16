@@ -1,8 +1,10 @@
+import { useSyncExternalStore } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
-import { hasAccessToken } from "../shared/api/accessToken";
+import { hasAccessToken, subscribeToAccessToken } from "../shared/api/accessToken";
+import { LoginPage } from "../pages/LoginPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { ProtectedPage } from "../pages/ProtectedPage";
-import { PublicPage } from "../pages/PublicPage";
+import { RegisterPage } from "../pages/RegisterPage";
 import { AppShell } from "./AppShell";
 
 const protectedRoutes = [
@@ -15,7 +17,8 @@ const protectedRoutes = [
 ] as const;
 
 function ProtectedRoute() {
-  return hasAccessToken() ? <AppShell /> : <Navigate replace to="/login" />;
+  const isAuthenticated = useSyncExternalStore(subscribeToAccessToken, hasAccessToken, hasAccessToken);
+  return isAuthenticated ? <AppShell /> : <Navigate replace to="/login" />;
 }
 
 export function AppRouter() {
@@ -23,8 +26,8 @@ export function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route element={<Navigate replace to="/dashboard" />} path="/" />
-        <Route element={<PublicPage title="Sign in" />} path="/login" />
-        <Route element={<PublicPage title="Create your account" />} path="/register" />
+        <Route element={<LoginPage />} path="/login" />
+        <Route element={<RegisterPage />} path="/register" />
         <Route element={<ProtectedRoute />}>
           {protectedRoutes.map(([path, title]) => (
             <Route element={<ProtectedPage title={title} />} key={path} path={path} />

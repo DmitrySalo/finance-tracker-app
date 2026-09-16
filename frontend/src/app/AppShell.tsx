@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router";
+import { NavLink, Outlet, useNavigate } from "react-router";
+import { setAccessToken } from "../shared/api/accessToken";
 import styles from "./AppShell.module.css";
 
 const navigation = [
@@ -11,6 +12,13 @@ const navigation = [
 ] as const;
 
 export function AppShell() {
+  const navigate = useNavigate();
+
+  function logout() {
+    setAccessToken(null);
+    navigate("/login", { replace: true });
+  }
+
   return (
     <div className={styles.shell}>
       <a className={styles.skipLink} href="#main-content">
@@ -27,6 +35,9 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
+        <button className={styles.logoutButton} onClick={logout} type="button">
+          Sign out
+        </button>
       </header>
       <main className={styles.main} id="main-content">
         <Outlet />

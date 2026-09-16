@@ -211,3 +211,10 @@
 [Промт.](promts/build-frontend-foundation.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 30
+Реализовать auth UI.
+
+[Промт.](promts/implement-auth-ui.md)
+
+Данная запись сгенерирована агентом.

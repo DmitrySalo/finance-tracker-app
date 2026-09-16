@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { setAccessToken } from "./accessToken";
+import { getAccessToken, setAccessToken } from "./accessToken";
 import { apiRequest, apiRequestVoid } from "./client";
 
 afterEach(() => {
@@ -45,4 +45,28 @@ test("accepts an empty successful API response", async () => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
 
   await expect(apiRequestVoid("/categories/category-id", { method: "DELETE" })).resolves.toBeUndefined();
+});
+
+test("does not clear a newer session after an older request receives 401", async () => {
+  setAccessToken("expired-access-token");
+  let respondToRequest: ((response: Response) => void) | undefined;
+  vi.spyOn(globalThis, "fetch").mockImplementation(() => new Promise<Response>((resolve) => {
+    respondToRequest = resolve;
+  }));
+
+  const request = apiRequest("/auth/me");
+  setAccessToken("new-access-token");
+  respondToRequest?.(new Response(null, { status: 401 }));
+
+  await expect(request).rejects.toMatchObject({ status: 401 });
+  expect(getAccessToken()).toBe("new-access-token");
+});
+
+test("does not clear an active session for a failed public login", async () => {
+  setAccessToken("active-access-token");
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 401 }));
+
+  await expect(apiRequest("/auth/login", { clearSessionOnUnauthorized: false })).rejects.toMatchObject({ status: 401 });
+
+  expect(getAccessToken()).toBe("active-access-token");
 });

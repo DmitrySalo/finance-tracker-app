@@ -1,0 +1,54 @@
+.form {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.field input[aria-invalid="true"],
+.field select[aria-invalid="true"] {
+  border-color: #b42318;
+}
+
+.fieldError,
+.formError {
+  margin: 0;
+  color: #b42318;
+  font-weight: 400;
+}
+
+.submitButton {
+  justify-self: start;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.submitButton:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.footer {
+  margin: var(--space-6) 0 0;
+}
