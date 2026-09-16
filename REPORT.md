@@ -197,3 +197,10 @@
 [Промт.](promts/complete-backend-api-and-seed-data.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 28
+Инициализировать frontend.
+
+[Промт.](promts/initialize-frontend.md)
+
+Данная запись сгенерирована агентом.
