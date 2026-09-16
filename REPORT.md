@@ -64,3 +64,10 @@
 [Промт.](promts/configure-profiles-and-secure-configuration.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 9
+Подключить Flyway и начальную схему identity.
+
+[Промт.](promts/connect-flyway-and-create-identity-schema.md)
+
+Данная запись сгенерирована агентом.

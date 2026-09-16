@@ -1,6 +1,9 @@
 spring:
   application:
     name: finance-tracker-app
+  jpa:
+    hibernate:
+      ddl-auto: validate
   jackson:
     time-zone: UTC
     write:
