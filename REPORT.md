@@ -46,3 +46,8 @@
 
 [Промт.](promts/add-resolution-logical-conflicts.md)
 
+### Шаг. 6
+Донастройка суб-агентов.
+
+[Промт.](promts/add-fine-tuning-subagents.md)
+
