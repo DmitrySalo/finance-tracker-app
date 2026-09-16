@@ -16,6 +16,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -46,6 +47,9 @@ class TransactionControllerIntegrationTests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
     @DynamicPropertySource
     static void configureDataSource(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
@@ -55,9 +59,10 @@ class TransactionControllerIntegrationTests {
 
     @AfterEach
     void clearData() {
-        jdbcTemplate.update("DELETE FROM transactions");
-        jdbcTemplate.update("DELETE FROM categories");
-        jdbcTemplate.update("DELETE FROM users");
+        transactionTemplate.executeWithoutResult(status -> {
+            jdbcTemplate.execute("SET LOCAL session_replication_role = replica");
+            jdbcTemplate.execute("TRUNCATE TABLE audit_logs, transactions, categories, users CASCADE");
+        });
     }
 
     @Test

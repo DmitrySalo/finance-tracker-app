@@ -134,3 +134,10 @@
 [Промт.](promts/implement-transaction-update-and-delete.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 19
+Добавить аудит транзакций.
+
+[Промт.](promts/add-transaction-audit.md)
+
+Данная запись сгенерирована агентом.

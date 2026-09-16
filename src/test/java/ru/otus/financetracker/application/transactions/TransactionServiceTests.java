@@ -17,6 +17,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import ru.otus.financetracker.application.categories.CategoryRepository;
+import ru.otus.financetracker.application.audit.TransactionAuditService;
 import ru.otus.financetracker.domain.categories.Category;
 import ru.otus.financetracker.domain.categories.TransactionType;
 import ru.otus.financetracker.domain.transactions.Transaction;
@@ -26,8 +27,11 @@ class TransactionServiceTests {
 
     private final TransactionRepository transactionRepository = mock(TransactionRepository.class);
     private final CategoryRepository categoryRepository = mock(CategoryRepository.class);
+    private final TransactionAuditService transactionAuditService = mock(TransactionAuditService.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-09-16T12:00:00Z"), ZoneOffset.UTC);
-    private final TransactionService service = new TransactionService(transactionRepository, categoryRepository, clock);
+    private final TransactionService service = new TransactionService(
+            transactionRepository, categoryRepository, transactionAuditService, clock
+    );
 
     @Test
     void shouldCreateTransactionWithFixedExchangeRateForOwnedMatchingCategory() {

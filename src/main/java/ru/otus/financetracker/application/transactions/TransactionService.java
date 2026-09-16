@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.otus.financetracker.application.audit.TransactionAuditService;
 import ru.otus.financetracker.application.categories.CategoryRepository;
 import ru.otus.financetracker.domain.transactions.Transaction;
 import ru.otus.financetracker.shared.web.ResourceNotFoundException;
@@ -18,11 +19,14 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
+    private final TransactionAuditService transactionAuditService;
     private final Clock clock;
 
-    public TransactionService(TransactionRepository transactionRepository, CategoryRepository categoryRepository, Clock clock) {
+    public TransactionService(TransactionRepository transactionRepository, CategoryRepository categoryRepository,
+                              TransactionAuditService transactionAuditService, Clock clock) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
+        this.transactionAuditService = transactionAuditService;
         this.clock = clock;
     }
 
@@ -35,11 +39,13 @@ public class TransactionService {
         }
 
         Instant now = clock.instant();
-        return transactionRepository.save(new Transaction(
+        var transaction = transactionRepository.save(new Transaction(
                 UUID.randomUUID(), userId, category.id(), command.amount(), command.currency(), command.exchangeRateToBase(),
                 command.transactionDate(), command.description() == null ? null : command.description().strip(),
                 command.transactionType(), now, now, 0
         ));
+        transactionAuditService.recordCreate(userId, transaction);
+        return transaction;
     }
 
     @Transactional(readOnly = true)
@@ -62,7 +68,7 @@ public class TransactionService {
             throw new TransactionCategoryTypeMismatchException();
         }
 
-        return transactionRepository.save(new Transaction(
+        var updatedTransaction = transactionRepository.save(new Transaction(
                 transaction.id(), transaction.userId(), category.id(),
                 command.amount() == null ? transaction.amount() : command.amount(),
                 command.currency() == null ? transaction.currency() : command.currency(),
@@ -71,6 +77,8 @@ public class TransactionService {
                 command.description() == null ? transaction.description() : command.description().strip(), transactionType,
                 transaction.createdAt(), clock.instant(), transaction.version()
         ));
+        transactionAuditService.recordUpdate(userId, transaction, updatedTransaction);
+        return updatedTransaction;
     }
 
     @Transactional
@@ -79,6 +87,7 @@ public class TransactionService {
         if (transaction.version() != version) {
             throw new OptimisticLockingFailureException("Transaction has been modified.");
         }
+        transactionAuditService.recordDelete(userId, transaction);
         transactionRepository.delete(transaction);
     }
 
