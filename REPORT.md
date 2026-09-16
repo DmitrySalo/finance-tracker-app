@@ -120,3 +120,10 @@
 [Промт.](promts/implement-transaction-create-and-read.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 17
+Реализовать список транзакций.
+
+[Промт.](promts/implement-transaction-list.md)
+
+Данная запись сгенерирована агентом.

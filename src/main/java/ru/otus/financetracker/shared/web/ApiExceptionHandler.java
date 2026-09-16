@@ -20,6 +20,7 @@ import ru.otus.financetracker.shared.ErrorCode;
 import ru.otus.financetracker.api.auth.AuthenticationRateLimitExceededException;
 import ru.otus.financetracker.application.identity.InvalidCredentialsException;
 import ru.otus.financetracker.application.transactions.TransactionCategoryTypeMismatchException;
+import ru.otus.financetracker.application.transactions.InvalidTransactionFilterException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -97,6 +98,12 @@ public class ApiExceptionHandler {
             TransactionCategoryTypeMismatchException exception, WebRequest request) {
         return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED,
                 "Transaction type must match category type.", request, List.of());
+    }
+
+    @ExceptionHandler(InvalidTransactionFilterException.class)
+    ResponseEntity<ApiErrorResponse> handleInvalidTransactionFilter(
+            InvalidTransactionFilterException exception, WebRequest request) {
+        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, List.of());
     }
 
     @ExceptionHandler(Exception.class)

@@ -4,6 +4,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.otus.financetracker.application.categories.CategoryRepository;
@@ -43,5 +45,24 @@ public class TransactionService {
     public Transaction get(UUID userId, UUID transactionId) {
         return transactionRepository.findByIdAndUserId(transactionId, userId)
                 .orElseThrow(ResourceNotFoundException::new);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Transaction> list(UUID userId, TransactionFilter filter, Pageable pageable) {
+        validateFilter(filter);
+        if (filter.categoryId() != null) {
+            categoryRepository.findByIdAndUserId(filter.categoryId(), userId)
+                    .orElseThrow(ResourceNotFoundException::new);
+        }
+        return transactionRepository.findAllByUserId(userId, filter, pageable);
+    }
+
+    private void validateFilter(TransactionFilter filter) {
+        if (filter.fromDate() != null && filter.toDate() != null && filter.fromDate().isAfter(filter.toDate())) {
+            throw new InvalidTransactionFilterException();
+        }
+        if (filter.minAmount() != null && filter.maxAmount() != null && filter.minAmount().compareTo(filter.maxAmount()) > 0) {
+            throw new InvalidTransactionFilterException();
+        }
     }
 }
