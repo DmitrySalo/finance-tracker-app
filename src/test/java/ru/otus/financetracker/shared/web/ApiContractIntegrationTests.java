@@ -40,6 +40,7 @@ import ru.otus.financetracker.application.categories.CategoryRepository;
 import ru.otus.financetracker.application.transactions.TransactionRepository;
 import ru.otus.financetracker.application.audit.AuditLogRepository;
 import ru.otus.financetracker.application.budgets.BudgetRepository;
+import ru.otus.financetracker.application.dashboard.DashboardRepository;
 
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude="
@@ -80,6 +81,9 @@ class ApiContractIntegrationTests {
 
     @MockitoBean
     private BudgetRepository budgetRepository;
+
+    @MockitoBean
+    private DashboardRepository dashboardRepository;
 
     @Autowired
     private MockMvc mockMvc;

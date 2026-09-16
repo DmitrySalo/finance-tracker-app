@@ -2,6 +2,7 @@ package ru.otus.financetracker.shared.web;
 
 import java.util.List;
 
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import ru.otus.financetracker.shared.ErrorCode;
 import ru.otus.financetracker.api.auth.AuthenticationRateLimitExceededException;
@@ -51,6 +53,18 @@ public class ApiExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, violations);
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    ResponseEntity<ApiErrorResponse> handleConstraintViolation(ConstraintViolationException exception, WebRequest request) {
+        var violations = exception.getConstraintViolations().stream()
+                .map(violation -> new ApiErrorResponse.Violation(
+                        requestParameterName(violation.getPropertyPath().toString()),
+                        toErrorCode(violation.getConstraintDescriptor().getAnnotation().annotationType().getSimpleName()),
+                        violation.getMessage()
+                ))
+                .toList();
+        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, violations);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ApiErrorResponse> handleUnreadableMessage(HttpMessageNotReadableException exception,
                                                               WebRequest request) {
@@ -64,6 +78,13 @@ public class ApiExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     ResponseEntity<ApiErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException exception, WebRequest request) {
         return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, List.of());
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    ResponseEntity<ApiErrorResponse> handleMissingRequestParameter(MissingServletRequestParameterException exception,
+                                                                    WebRequest request) {
+        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request,
+                List.of(new ApiErrorResponse.Violation(exception.getParameterName(), "REQUIRED", "Must not be null.")));
     }
 
     @ExceptionHandler({ResourceNotFoundException.class, OwnershipDeniedException.class, NoResourceFoundException.class})
@@ -134,6 +155,10 @@ public class ApiExceptionHandler {
             return "INVALID";
         }
         return code.replaceAll("([a-z])([A-Z])", "$1_$2").toUpperCase();
+    }
+
+    private String requestParameterName(String propertyPath) {
+        return propertyPath.substring(propertyPath.lastIndexOf('.') + 1);
     }
 
     private String resolveErrorCode(String[] codes) {

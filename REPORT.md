@@ -155,3 +155,10 @@
 [Промт.](promts/implement-budget-calculation.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 22
+Реализовать dashboard API.
+
+[Промт.](promts/implement-dashboard-api.md)
+
+Данная запись сгенерирована агентом.

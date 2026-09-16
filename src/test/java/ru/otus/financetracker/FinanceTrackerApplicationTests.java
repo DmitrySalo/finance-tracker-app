@@ -20,6 +20,7 @@ import ru.otus.financetracker.application.categories.CategoryRepository;
 import ru.otus.financetracker.application.transactions.TransactionRepository;
 import ru.otus.financetracker.application.audit.AuditLogRepository;
 import ru.otus.financetracker.application.budgets.BudgetRepository;
+import ru.otus.financetracker.application.dashboard.DashboardRepository;
 import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest(properties = {
@@ -59,6 +60,9 @@ class FinanceTrackerApplicationTests {
 
     @MockitoBean
     private BudgetRepository budgetRepository;
+
+    @MockitoBean
+    private DashboardRepository dashboardRepository;
 
     private final Clock clock;
     private final ObjectMapper objectMapper;
