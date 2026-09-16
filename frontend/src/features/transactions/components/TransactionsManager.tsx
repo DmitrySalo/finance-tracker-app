@@ -17,6 +17,7 @@ import {
 import type { TransactionFilters, TransactionInput, TransactionSort } from "../api/transactionsApi";
 import { categoryQueryKey, listCategories } from "../../categories/api/categoriesApi";
 import styles from "./TransactionsManager.module.css";
+import { TransactionsCsvManager } from "./TransactionsCsvManager";
 
 const transactionSchema = z.object({
   categoryId: z.string().uuid("Enter a valid category ID."),
@@ -194,6 +195,7 @@ export function TransactionsManager() {
       <FilterField label="Maximum amount" name="maxAmount" onChange={changeFilter} type="text" value={draftFilters.maxAmount} />
       <div className={styles.field}><label htmlFor="filter-type">Type</label><select id="filter-type" onChange={(event) => changeFilter("transactionType", event.target.value)} value={draftFilters.transactionType}><option value="">All types</option><option value="EXPENSE">Expense</option><option value="INCOME">Income</option></select></div><button className={styles.primaryButton} type="submit">Apply filters</button>
     </div></form>
+    <TransactionsCsvManager filters={filters} />
     <div className={styles.field}><label htmlFor="sort">Sort by</label><select id="sort" onChange={(event) => { setSort(event.target.value as TransactionSort); setPage(0); }} value={sort}><option value="transactionDate,desc">Date: newest first</option><option value="transactionDate,asc">Date: oldest first</option><option value="amount,desc">Amount: highest first</option><option value="amount,asc">Amount: lowest first</option></select></div>
     {transactionsQuery.isPending && <p role="status">Loading transactions…</p>}
     {transactionsQuery.isError && <p className={styles.formError} role="alert">We could not load transactions. Please refresh the page.</p>}

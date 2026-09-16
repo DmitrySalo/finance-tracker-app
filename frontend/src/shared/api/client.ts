@@ -82,6 +82,17 @@ export async function apiRequestVoid(path: string, options: ApiRequestOptions = 
   }
 }
 
+export async function apiRequestBlob(path: string, options: ApiRequestOptions = {}): Promise<Blob> {
+  const { clearSessionOnUnauthorized = true, response, token } = await sendRequest(path, options);
+
+  if (!response.ok) {
+    clearExpiredSession(response.status, token, clearSessionOnUnauthorized);
+    throw new ApiClientError(response.status, await parseError(response));
+  }
+
+  return response.blob();
+}
+
 function clearExpiredSession(status: number, token: string | null, clearSessionOnUnauthorized: boolean): void {
   if (clearSessionOnUnauthorized && status === 401 && token !== null && getAccessToken() === token) {
     setAccessToken(null);

@@ -1,5 +1,5 @@
-import { apiRequest, apiRequestVoid } from "../../../shared/api/client";
-import type { PageResponse, Transaction, TransactionType } from "../../../shared/api/models";
+import { apiRequest, apiRequestBlob, apiRequestVoid } from "../../../shared/api/client";
+import type { PageResponse, Transaction, TransactionImportConfirmation, TransactionImportPreview, TransactionType } from "../../../shared/api/models";
 
 export const transactionQueryKey = ["transactions"] as const;
 
@@ -44,4 +44,36 @@ export function updateTransaction(transaction: Transaction, input: TransactionIn
 
 export function deleteTransaction(transaction: Transaction): Promise<void> {
   return apiRequestVoid(`/transactions/${transaction.id}?version=${encodeURIComponent(String(transaction.version))}`, { method: "DELETE" });
+}
+
+export type TransactionImportColumn = "categoryId" | "amount" | "currency" | "exchangeRateToBase" | "transactionDate" | "description" | "transactionType";
+export type TransactionImportMapping = Partial<Record<TransactionImportColumn, string>>;
+
+function filterParameters(filters: TransactionFilters): URLSearchParams {
+  const parameters = new URLSearchParams();
+  for (const [name, value] of Object.entries(filters)) {
+    if (value !== "") parameters.set(name, value);
+  }
+  return parameters;
+}
+
+export function exportTransactions(filters: TransactionFilters): Promise<Blob> {
+  const parameters = filterParameters(filters);
+  return apiRequestBlob(`/transactions/export${parameters.size > 0 ? `?${parameters.toString()}` : ""}`);
+}
+
+function importFormData(file: File, mapping: TransactionImportMapping): FormData {
+  const columns = Object.fromEntries(Object.entries(mapping).filter((entry): entry is [string, string] => entry[1] !== ""));
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("mapping", new Blob([JSON.stringify({ columns })], { type: "application/json" }));
+  return formData;
+}
+
+export function previewTransactionImport(file: File, mapping: TransactionImportMapping): Promise<TransactionImportPreview> {
+  return apiRequest<TransactionImportPreview>("/transactions/imports/preview", { method: "POST", body: importFormData(file, mapping) });
+}
+
+export function confirmTransactionImport(file: File, mapping: TransactionImportMapping): Promise<TransactionImportConfirmation> {
+  return apiRequest<TransactionImportConfirmation>("/transactions/imports", { method: "POST", body: importFormData(file, mapping) });
 }
