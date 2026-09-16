@@ -6,6 +6,8 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import ru.otus.financetracker.shared.web.RequestSizeLimitFilter;
@@ -21,6 +23,11 @@ public class ApplicationConfiguration {
     @Bean
     Clock clock(ApplicationProperties properties) {
         return Clock.system(properties.timeZone());
+    }
+
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean

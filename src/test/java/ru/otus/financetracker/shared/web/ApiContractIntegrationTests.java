@@ -16,6 +16,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Min;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.otus.financetracker.shared.PageResponse;
+import ru.otus.financetracker.application.identity.UserRegistrationRepository;
 
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude="
@@ -55,6 +57,9 @@ import ru.otus.financetracker.shared.PageResponse;
 @ActiveProfiles("test")
 @Import(ApiContractIntegrationTests.TestController.class)
 class ApiContractIntegrationTests {
+
+    @MockitoBean
+    private UserRegistrationRepository userRegistrationRepository;
 
     @Autowired
     private MockMvc mockMvc;

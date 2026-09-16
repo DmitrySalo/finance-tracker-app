@@ -4,14 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDate;
 
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 import ru.otus.financetracker.configuration.ApplicationProperties;
+import ru.otus.financetracker.application.identity.UserRegistrationRepository;
 import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest(properties = {
@@ -33,6 +36,9 @@ import tools.jackson.databind.ObjectMapper;
 })
 @ActiveProfiles("test")
 class FinanceTrackerApplicationTests {
+
+    @MockitoBean
+    private UserRegistrationRepository userRegistrationRepository;
 
     private final Clock clock;
     private final ObjectMapper objectMapper;
@@ -63,7 +69,9 @@ class FinanceTrackerApplicationTests {
         var limits = new ApplicationProperties.Limits(
                 org.springframework.util.unit.DataSize.ofKilobytes(1),
                 org.springframework.util.unit.DataSize.ofKilobytes(2),
-                100
+                100,
+                5,
+                Duration.ofMinutes(1)
         );
 
         assertThat(validator.validate(limits))

@@ -78,3 +78,10 @@
 [Промт.](promts/implement-common-http-contract.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 11
+Реализовать регистрацию.
+
+[Промт.](promts/implement-user-registration.md)
+
+Данная запись сгенерирована агентом.

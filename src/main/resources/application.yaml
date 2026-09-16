@@ -21,6 +21,8 @@ app:
     max-request-size: ${MAX_REQUEST_SIZE}
     max-csv-file-size: ${MAX_CSV_FILE_SIZE}
     max-csv-rows: ${MAX_CSV_ROWS}
+    registration-max-attempts: ${REGISTRATION_MAX_ATTEMPTS:5}
+    registration-window: ${REGISTRATION_WINDOW:1m}
 
 server:
   tomcat:

@@ -1,6 +1,7 @@
 package ru.otus.financetracker.configuration;
 
 import java.time.ZoneId;
+import java.time.Duration;
 import java.util.List;
 
 import jakarta.validation.Valid;
@@ -39,7 +40,9 @@ public record ApplicationProperties(
     public record Limits(
             @NotNull DataSize maxRequestSize,
             @NotNull DataSize maxCsvFileSize,
-            @Min(1) int maxCsvRows
+            @Min(1) int maxCsvRows,
+            @Min(1) int registrationMaxAttempts,
+            @NotNull Duration registrationWindow
     ) {
 
         @AssertTrue(message = "Request and CSV file size limits must be positive, and the CSV file size limit must not exceed the request size limit.")
@@ -48,6 +51,9 @@ public record ApplicationProperties(
                     && maxCsvFileSize != null
                     && maxRequestSize.toBytes() > 0
                     && maxCsvFileSize.toBytes() > 0
+                    && registrationWindow != null
+                    && !registrationWindow.isNegative()
+                    && !registrationWindow.isZero()
                     && maxCsvFileSize.compareTo(maxRequestSize) <= 0;
         }
     }

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneOffset;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -24,7 +25,7 @@ class RequestSizeLimitFilterTests {
                     ZoneOffset.UTC,
                     new ApplicationProperties.Jwt("https://issuer.test", "finance-tracker-test", "test-signing-secret-with-at-least-32-characters"),
                     new ApplicationProperties.Cors(List.of("https://frontend.test")),
-                    new ApplicationProperties.Limits(DataSize.ofBytes(4), DataSize.ofBytes(4), 1)
+                    new ApplicationProperties.Limits(DataSize.ofBytes(4), DataSize.ofBytes(4), 1, 5, Duration.ofMinutes(1))
             ),
             errorResponseWriter
     );

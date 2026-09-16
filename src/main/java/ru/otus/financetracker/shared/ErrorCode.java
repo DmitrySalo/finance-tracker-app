@@ -7,5 +7,6 @@ public enum ErrorCode {
     NOT_FOUND,
     CONFLICT,
     PAYLOAD_TOO_LARGE,
+    RATE_LIMITED,
     INTERNAL_ERROR
 }
