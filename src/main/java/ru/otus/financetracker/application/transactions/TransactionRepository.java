@@ -1,6 +1,9 @@
 package ru.otus.financetracker.application.transactions;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -14,6 +17,11 @@ public interface TransactionRepository {
     Optional<Transaction> findByIdAndUserId(UUID transactionId, UUID userId);
 
     Page<Transaction> findAllByUserId(UUID userId, TransactionFilter filter, Pageable pageable);
+
+    BigDecimal sumExpenseAmountInBaseCurrency(UUID userId, UUID categoryId, LocalDate fromInclusive, LocalDate toExclusive);
+
+    List<TransactionMonthlyExpenseTotal> sumExpenseAmountsInBaseCurrencyByMonth(UUID userId, List<UUID> categoryIds,
+                                                                                  LocalDate fromInclusive, LocalDate toExclusive);
 
     void delete(Transaction transaction);
 }

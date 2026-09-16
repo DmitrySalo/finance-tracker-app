@@ -79,7 +79,7 @@ src/main/java/ru/otus/financetracker/
 | `users` | `id`, `email`, `password_hash`, `display_name`, `base_currency`, timestamps, `version`; email уникален без учета регистра. |
 | `categories` | `id`, `user_id`, `name`, `transaction_type`, `icon`, `color`, timestamps, `version`; уникальность `(user_id, transaction_type, name)`. |
 | `transactions` | `id`, `user_id`, `category_id`, `amount NUMERIC(19,4)`, `currency CHAR(3)`, `exchange_rate_to_base NUMERIC(19,8)`, `transaction_date`, `description`, `transaction_type`, `recurring_transaction_id`, timestamps, `version`; сумма и курс больше нуля, тип совпадает с категорией. |
-| `budgets` | `id`, `user_id`, `category_id`, `budget_month DATE`, `limit_amount NUMERIC(19,4)`, `currency CHAR(3)`, timestamps, `version`; месяц - первый день месяца, лимит положителен, уникальность `(user_id, category_id, budget_month)`, только расходная категория. |
+| `budgets` | `id`, `user_id`, `category_id`, `budget_month DATE`, `limit_amount NUMERIC(19,4)`, `currency CHAR(3)`, timestamps, `version`; месяц - первый день месяца, лимит положителен, валюта совпадает с `users.base_currency`, уникальность `(user_id, category_id, budget_month)`, только расходная категория. |
 | `recurring_transactions` | `id`, `user_id`, `category_id`, `amount`, `currency`, `exchange_rate_to_base`, `description`, `transaction_type`, `day_of_month`, `start_date`, `next_occurrence_date`, `active`, timestamps, `version`. |
 | `recurring_transaction_occurrences` | `id`, `recurring_transaction_id`, `occurrence_date`, `transaction_id`, `created_at`; уникальность `(recurring_transaction_id, occurrence_date)`. |
 | `audit_logs` | `id`, `actor_user_id`, `entity_type`, `entity_id`, `action`, `occurred_at`, `before_state`, `after_state`; состояния содержат только нужные бизнес-поля. |
@@ -91,6 +91,8 @@ src/main/java/ru/otus/financetracker/
 - `budgets(user_id, budget_month, category_id)`;
 - `audit_logs(actor_user_id, occurred_at DESC)` и `audit_logs(entity_type, entity_id, occurred_at DESC)`;
 - `recurring_transactions(active, next_occurrence_date)` для scheduler.
+
+Валюта бюджета всегда совпадает с базовой валютой его владельца; это закреплено составным foreign key `(budgets.user_id, budgets.currency)` на `(users.id, users.base_currency)`. Поэтому расход бюджета рассчитывается в его валюте как `SUM(transactions.amount * transactions.exchange_rate_to_base)` по расходным транзакциям категории в полуинтервале месяца `[budget_month, budget_month + 1 month)`. Используется только неизменяемый сохраненный курс транзакции; внешние курсы при расчете не запрашиваются. `spentAmount` и `remainingAmount` округляются до четырех десятичных знаков `HALF_UP`; `percentage` рассчитывается от округленного расхода с точностью до двух десятичных знаков `HALF_UP`.
 
 Миграции находятся в `src/main/resources/db/migration/` и создаются только через Flyway как `V<номер>__<описание>.sql`. Примененные миграции не редактируются. Hibernate выполняет `ddl-auto=validate`. Отдельная детерминированная Flyway-миграция создает два демонстрационных пользователя, 12 категорий, три бюджета и более 200 транзакций за шесть месяцев. Используются только синтетические данные и заведомо фиктивные пароли.
 

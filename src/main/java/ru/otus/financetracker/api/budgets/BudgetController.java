@@ -35,7 +35,7 @@ public class BudgetController {
     ResponseEntity<BudgetResponse> create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CreateBudgetRequest request) {
         var budget = budgetService.create(userId(jwt), new CreateBudgetCommand(request.categoryId(), request.budgetMonth(),
                 request.limitAmount(), request.currency()));
-        return ResponseEntity.created(URI.create("/api/v1/budgets/" + budget.id())).body(BudgetResponse.from(budget));
+        return ResponseEntity.created(URI.create("/api/v1/budgets/" + budget.budget().id())).body(BudgetResponse.from(budget));
     }
     @GetMapping("/{budgetId}")
     BudgetResponse get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID budgetId) {

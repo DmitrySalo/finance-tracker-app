@@ -45,7 +45,10 @@ class BudgetControllerIntegrationTests {
         String token = registerAndLogin("budget-owner@example.test"); String categoryId = createCategory(token, "EXPENSE");
         String budgetId = createBudget(token, categoryId, "2026-09-01", "500.0000");
         mockMvc.perform(get("/api/v1/budgets").header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].id").value(budgetId));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].id").value(budgetId))
+                .andExpect(jsonPath("$.items[0].spentAmount").value("0.0000"))
+                .andExpect(jsonPath("$.items[0].remainingAmount").value("500.0000"))
+                .andExpect(jsonPath("$.items[0].percentage").value("0.00"));
         mockMvc.perform(get("/api/v1/budgets/{id}", budgetId).header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.budgetMonth").value("2026-09-01"));
         mockMvc.perform(patch("/api/v1/budgets/{id}", budgetId).header("Authorization", "Bearer " + token)
@@ -62,6 +65,9 @@ class BudgetControllerIntegrationTests {
                         .content(request(expense, "2026-09-01", "0"))).andExpect(status().isBadRequest());
         mockMvc.perform(post("/api/v1/budgets").header("Authorization", "Bearer " + token).contentType("application/json")
                         .content(request(income, "2026-09-01", "500.0000"))).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        mockMvc.perform(post("/api/v1/budgets").header("Authorization", "Bearer " + token).contentType("application/json")
+                        .content("{\"categoryId\":\"%s\",\"budgetMonth\":\"2026-10-01\",\"limitAmount\":500.0000,\"currency\":\"EUR\"}".formatted(expense)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
         createBudget(token, expense, "2026-09-01", "500.0000");
         mockMvc.perform(post("/api/v1/budgets").header("Authorization", "Bearer " + token).contentType("application/json")
                         .content(request(expense, "2026-09-01", "600.0000"))).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CONFLICT"));
@@ -90,7 +96,7 @@ class BudgetControllerIntegrationTests {
                         .content(request(categoryId, month, amount))).andExpect(status().isCreated()).andReturn();
         return new tools.jackson.databind.ObjectMapper().readTree(response.getResponse().getContentAsString()).get("id").asText();
     }
-    private String request(String categoryId, String month, String amount) { return "{\"categoryId\":\"%s\",\"budgetMonth\":\"%s\",\"limitAmount\":%s,\"currency\":\"EUR\"}".formatted(categoryId, month, amount); }
+    private String request(String categoryId, String month, String amount) { return "{\"categoryId\":\"%s\",\"budgetMonth\":\"%s\",\"limitAmount\":%s,\"currency\":\"USD\"}".formatted(categoryId, month, amount); }
     private String createCategory(String token, String type) throws Exception {
         var response = mockMvc.perform(post("/api/v1/categories").header("Authorization", "Bearer " + token).contentType("application/json")
                 .content("{\"name\":\"Food %s\",\"transactionType\":\"%s\",\"icon\":\"utensils\",\"color\":\"#0A1B2C\"}".formatted(java.util.UUID.randomUUID(), type))).andExpect(status().isCreated()).andReturn();

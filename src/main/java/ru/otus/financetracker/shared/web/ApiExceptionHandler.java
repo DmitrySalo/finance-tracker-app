@@ -23,6 +23,7 @@ import ru.otus.financetracker.application.transactions.TransactionCategoryTypeMi
 import ru.otus.financetracker.application.transactions.InvalidTransactionFilterException;
 import ru.otus.financetracker.application.budgets.BudgetCategoryMustBeExpenseException;
 import ru.otus.financetracker.application.budgets.BudgetMonthMustBeFirstDayException;
+import ru.otus.financetracker.application.budgets.BudgetCurrencyMustMatchUserBaseCurrencyException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -108,7 +109,8 @@ public class ApiExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, List.of());
     }
 
-    @ExceptionHandler({BudgetCategoryMustBeExpenseException.class, BudgetMonthMustBeFirstDayException.class})
+    @ExceptionHandler({BudgetCategoryMustBeExpenseException.class, BudgetMonthMustBeFirstDayException.class,
+            BudgetCurrencyMustMatchUserBaseCurrencyException.class})
     ResponseEntity<ApiErrorResponse> handleInvalidBudget(Exception exception, WebRequest request) {
         return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, List.of());
     }

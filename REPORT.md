@@ -148,3 +148,10 @@
 [Промт.](promts/create-and-implement-budgets.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 21
+Реализовать расчет бюджета.
+
+[Промт.](promts/implement-budget-calculation.md)
+
+Данная запись сгенерирована агентом.

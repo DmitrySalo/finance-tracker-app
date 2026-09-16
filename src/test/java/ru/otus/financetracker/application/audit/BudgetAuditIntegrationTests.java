@@ -54,10 +54,10 @@ class BudgetAuditIntegrationTests {
     @Test void shouldRecordCreateUpdateAndDeleteBudgetStates() {
         UUID userId = UUID.randomUUID(); UUID categoryId = insertReferences(userId);
         var created = budgetService.create(userId, command(categoryId, "500.0000"));
-        var updated = budgetService.update(userId, created.id(), new UpdateBudgetCommand(created.version(), null, null,
+        var updated = budgetService.update(userId, created.budget().id(), new UpdateBudgetCommand(created.budget().version(), null, null,
                 new BigDecimal("600.0000"), "USD"));
-        budgetService.delete(userId, updated.id(), updated.version());
-        List<AuditRow> rows = jdbcTemplate.query("SELECT actor_user_id, entity_type, action, occurred_at, before_state::text, after_state::text FROM audit_logs WHERE entity_id = ? ORDER BY action", (resultSet, rowNumber) -> new AuditRow(resultSet.getObject("actor_user_id", UUID.class), resultSet.getString("entity_type"), resultSet.getString("action"), resultSet.getObject("occurred_at", OffsetDateTime.class).toInstant(), resultSet.getString("before_state"), resultSet.getString("after_state")), created.id());
+        budgetService.delete(userId, updated.budget().id(), updated.budget().version());
+        List<AuditRow> rows = jdbcTemplate.query("SELECT actor_user_id, entity_type, action, occurred_at, before_state::text, after_state::text FROM audit_logs WHERE entity_id = ? ORDER BY action", (resultSet, rowNumber) -> new AuditRow(resultSet.getObject("actor_user_id", UUID.class), resultSet.getString("entity_type"), resultSet.getString("action"), resultSet.getObject("occurred_at", OffsetDateTime.class).toInstant(), resultSet.getString("before_state"), resultSet.getString("after_state")), created.budget().id());
         assertThat(rows).hasSize(3);
         assertThat(rows).allSatisfy(row -> assertThat(row.occurredAt()).isEqualTo(AUDIT_TIME));
         assertThat(rows).allSatisfy(row -> assertThat(row.actorUserId()).isEqualTo(userId));
@@ -75,7 +75,7 @@ class BudgetAuditIntegrationTests {
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM audit_logs", Integer.class)).isZero();
     }
     private UUID insertReferences(UUID userId) { UUID categoryId = UUID.randomUUID(); jdbcTemplate.update("INSERT INTO users (id,email,password_hash,display_name,base_currency) VALUES (?,?,?,?,?)", userId, userId + "@example.test", "hash", "Test", "USD"); jdbcTemplate.update("INSERT INTO categories (id,user_id,name,transaction_type,icon,color) VALUES (?,?,?,?,?,?)", categoryId, userId, "Food", "EXPENSE", "icon", "#0A1B2C"); return categoryId; }
-    private CreateBudgetCommand command(UUID categoryId, String limit) { return new CreateBudgetCommand(categoryId, LocalDate.of(2026, 9, 1), new BigDecimal(limit), "EUR"); }
+    private CreateBudgetCommand command(UUID categoryId, String limit) { return new CreateBudgetCommand(categoryId, LocalDate.of(2026, 9, 1), new BigDecimal(limit), "USD"); }
     private record AuditRow(UUID actorUserId, String entityType, String action, Instant occurredAt, String beforeState,
                             String afterState) { }
     @TestConfiguration(proxyBeanMethods = false) static class FixedClockConfiguration { @Bean @Primary Clock fixedClock() { return Clock.fixed(AUDIT_TIME, ZoneOffset.UTC); } }

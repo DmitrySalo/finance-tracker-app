@@ -1,6 +1,9 @@
 package ru.otus.financetracker.infrastructure.persistence;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,6 +14,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 import ru.otus.financetracker.application.transactions.TransactionFilter;
 import ru.otus.financetracker.application.transactions.TransactionRepository;
+import ru.otus.financetracker.application.transactions.TransactionMonthlyExpenseTotal;
+import ru.otus.financetracker.domain.categories.TransactionType;
 import ru.otus.financetracker.domain.transactions.Transaction;
 
 @Repository
@@ -38,6 +43,29 @@ public class JpaTransactionRepository implements TransactionRepository {
     @Override
     public Page<Transaction> findAllByUserId(UUID userId, TransactionFilter filter, Pageable pageable) {
         return transactionJpaRepository.findAll(specification(userId, filter), pageable).map(this::toDomain);
+    }
+
+    @Override
+    public BigDecimal sumExpenseAmountInBaseCurrency(UUID userId, UUID categoryId, LocalDate fromInclusive,
+                                                      LocalDate toExclusive) {
+        return transactionJpaRepository.sumAmountByUserCategoryTypeAndTransactionDateBetween(
+                userId, categoryId, TransactionType.EXPENSE, fromInclusive, toExclusive
+        );
+    }
+
+    @Override
+    public List<TransactionMonthlyExpenseTotal> sumExpenseAmountsInBaseCurrencyByMonth(UUID userId,
+                                                                                          List<UUID> categoryIds,
+                                                                                          LocalDate fromInclusive,
+                                                                                          LocalDate toExclusive) {
+        if (categoryIds.isEmpty()) {
+            return List.of();
+        }
+        return transactionJpaRepository.sumExpenseAmountsByMonth(userId, categoryIds, fromInclusive, toExclusive).stream()
+                .map(total -> new TransactionMonthlyExpenseTotal(
+                        total.getCategoryId(), total.getBudgetMonth(), total.getSpentAmount()
+                ))
+                .toList();
     }
 
     @Override
