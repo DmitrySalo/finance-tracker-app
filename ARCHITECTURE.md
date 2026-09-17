@@ -35,7 +35,7 @@ Swagger UI доступен в development или защищается в раз
 Пакетный корень: `ru.otus.financetracker`.
 
 ```text
-src/main/java/ru/otus/financetracker/
+backend/src/main/java/ru/otus/financetracker/
 ├── api/                    # controllers, request/response DTO, error handler
 ├── application/            # use cases, команды, query services, транзакции
 ├── domain/                 # бизнес-модель, правила, enums, порты
@@ -94,7 +94,7 @@ src/main/java/ru/otus/financetracker/
 
 Валюта бюджета всегда совпадает с базовой валютой его владельца; это закреплено составным foreign key `(budgets.user_id, budgets.currency)` на `(users.id, users.base_currency)`. Поэтому расход бюджета рассчитывается в его валюте как `SUM(transactions.amount * transactions.exchange_rate_to_base)` по расходным транзакциям категории в полуинтервале месяца `[budget_month, budget_month + 1 month)`. Используется только неизменяемый сохраненный курс транзакции; внешние курсы при расчете не запрашиваются. `spentAmount` и `remainingAmount` округляются до четырех десятичных знаков `HALF_UP`; `percentage` рассчитывается от округленного расхода с точностью до двух десятичных знаков `HALF_UP`.
 
-Миграции находятся в `src/main/resources/db/migration/` и создаются только через Flyway как `V<номер>__<описание>.sql`. Примененные миграции не редактируются. Hibernate выполняет `ddl-auto=validate`. Отдельная детерминированная Flyway-миграция создает два демонстрационных пользователя, 12 категорий, три бюджета и более 200 транзакций за шесть месяцев. Используются только синтетические данные и заведомо фиктивные пароли.
+Миграции находятся в `backend/src/main/resources/db/migration/` и создаются только через Flyway как `V<номер>__<описание>.sql`. Примененные миграции не редактируются. Hibernate выполняет `ddl-auto=validate`. Отдельная детерминированная Flyway-миграция создает два демонстрационных пользователя, 12 категорий, три бюджета и более 200 транзакций за шесть месяцев. Используются только синтетические данные и заведомо фиктивные пароли.
 
 ## REST API
 
@@ -206,6 +206,8 @@ frontend/src/
 | CI | GitHub Actions | Проверки backend и frontend на pull request/push. |
 
 Совместимость обеспечивается Spring Boot BOM: она уже согласует Spring-проекты, Hibernate, HikariCP, драйвер PostgreSQL, JUnit и Testcontainers. Hibernate нельзя независимо обновлять до иной версии. PostgreSQL 18 поддерживается Hibernate ORM 7.4 и JDBC-драйвером из BOM. Spring Boot 4.1 требует минимум Java 17 и совместим с Java 21, выбранной в проекте.
+
+Backend-исходники изолированы в `backend/src/`: production-код и ресурсы находятся в `backend/src/main/`, тесты и их ресурсы - в `backend/src/test/`. Gradle Wrapper и `build.gradle` остаются в корне репозитория; исходные наборы Gradle явно указывают на `backend/src`, поэтому команды `./gradlew` сохраняют прежний интерфейс. Dockerfile копирует `backend/` при сборке backend-образа.
 
 Текущий `build.gradle` использует Spring Boot 3.5.6. Первый шаг реализации обновляет его до 4.1.0 вместе с зависимостями, необходимыми для этого документа; это отдельное проверяемое изменение, а не неявное смешение с бизнес-функциями.
 

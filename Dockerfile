@@ -5,7 +5,7 @@ WORKDIR /workspace
 COPY --chown=gradle:gradle gradle gradle
 COPY --chown=gradle:gradle gradlew build.gradle settings.gradle ./
 RUN chmod +x gradlew
-COPY --chown=gradle:gradle src src
+COPY --chown=gradle:gradle backend backend
 RUN ./gradlew bootJar --no-daemon
 
 FROM eclipse-temurin:21-jre-alpine
