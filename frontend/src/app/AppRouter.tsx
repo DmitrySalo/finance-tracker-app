@@ -13,14 +13,7 @@ import { RecurringTransactionsManager } from "../features/recurring-transactions
 import { AuditLogManager } from "../features/audit/components/AuditLogManager";
 import { AppShell } from "./AppShell";
 
-const protectedRoutes = [
-  ["dashboard", "Dashboard"],
-  ["transactions", "Transactions"],
-  ["categories", "Categories"],
-  ["budgets", "Budgets"],
-  ["recurring-transactions", "Recurring transactions"],
-  ["audit-logs", "Audit log"],
-] as const;
+const protectedRoutes = ["dashboard", "transactions", "categories", "budgets", "recurring-transactions", "audit-logs"] as const;
 
 function ProtectedRoute() {
   const isAuthenticated = useSyncExternalStore(subscribeToAccessToken, hasAccessToken, hasAccessToken);
@@ -35,8 +28,8 @@ export function AppRouter() {
         <Route element={<LoginPage />} path="/login" />
         <Route element={<RegisterPage />} path="/register" />
         <Route element={<ProtectedRoute />}>
-          {protectedRoutes.map(([path, title]) => (
-            <Route element={path === "dashboard" ? <DashboardManager /> : path === "categories" ? <CategoriesManager /> : path === "transactions" ? <TransactionsManager /> : path === "budgets" ? <BudgetsManager /> : path === "recurring-transactions" ? <RecurringTransactionsManager /> : path === "audit-logs" ? <AuditLogManager /> : <ProtectedPage title={title} />} key={path} path={path} />
+          {protectedRoutes.map((path) => (
+            <Route element={path === "dashboard" ? <DashboardManager /> : path === "categories" ? <CategoriesManager /> : path === "transactions" ? <TransactionsManager /> : path === "budgets" ? <BudgetsManager /> : path === "recurring-transactions" ? <RecurringTransactionsManager /> : path === "audit-logs" ? <AuditLogManager /> : <ProtectedPage title="" />} key={path} path={path} />
           ))}
         </Route>
         <Route element={<NotFoundPage />} path="*" />

@@ -28,3 +28,4 @@ body { min-width: 20rem; margin: 0; }
 button, input, select { font: inherit; }
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 0.1875rem solid #f59e0b; outline-offset: 0.125rem; }
 .error-page { padding: var(--space-8); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

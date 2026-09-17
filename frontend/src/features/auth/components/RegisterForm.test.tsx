@@ -2,6 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { App } from "../../../App";
 
+localStorage.setItem("finance-tracker.locale", "en");
+
 afterEach(() => {
   vi.restoreAllMocks();
   window.history.pushState({}, "", "/");

@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ApiClientError } from "../../../shared/api/client";
 import type { TransactionImportPreview } from "../../../shared/api/models";
 import { useNotifications } from "../../../shared/notifications/useNotifications";
+import { useLocalization } from "../../../shared/localization/LocalizationProvider";
 import { confirmTransactionImport, exportTransactions, previewTransactionImport, transactionQueryKey } from "../api/transactionsApi";
 import type { TransactionFilters, TransactionImportColumn, TransactionImportMapping } from "../api/transactionsApi";
 import styles from "./TransactionsManager.module.css";
@@ -16,6 +16,9 @@ const importColumns: Array<{ key: TransactionImportColumn; label: string; requir
   { key: "description", label: "Description", required: false },
   { key: "transactionType", label: "Transaction type", required: true },
 ];
+const russianColumnLabels: Record<string, string> = {
+  "Category ID": "Идентификатор категории", Amount: "Сумма", Currency: "Валюта", "Exchange rate to base currency": "Курс к основной валюте", "Transaction date": "Дата операции", Description: "Описание", "Transaction type": "Тип операции",
+};
 
 const requiredColumns = importColumns.filter((column) => column.required);
 
@@ -60,8 +63,8 @@ function readHeader(file: File): Promise<string> {
   });
 }
 
-function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof ApiClientError ? error.apiError.message : fallback;
+function errorMessage(_error: unknown, fallback: string): string {
+  return fallback;
 }
 
 interface TransactionsCsvManagerProps {
@@ -69,6 +72,7 @@ interface TransactionsCsvManagerProps {
 }
 
 export function TransactionsCsvManager({ filters }: TransactionsCsvManagerProps) {
+  const { l } = useLocalization();
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<TransactionImportMapping>({});
@@ -99,7 +103,7 @@ export function TransactionsCsvManager({ filters }: TransactionsCsvManagerProps)
     mutationFn: () => confirmTransactionImport(file!, mapping),
     onSuccess: ({ importedCount }) => {
       void queryClient.invalidateQueries({ queryKey: transactionQueryKey });
-      notify(`${importedCount} transaction${importedCount === 1 ? "" : "s"} imported.`);
+      notify(l(`${importedCount} transaction${importedCount === 1 ? "" : "s"} imported.`, `Импортировано операций: ${importedCount}.`));
       setPreview(null);
     },
   });
@@ -120,7 +124,7 @@ export function TransactionsCsvManager({ filters }: TransactionsCsvManagerProps)
     try {
       const header = parseCsvHeader(await readHeader(selectedFile));
       if (header === null || header.some((name) => name === "") || new Set(header).size !== header.length) {
-        setFileError("The CSV header is invalid or too long.");
+        setFileError(l("The CSV header is invalid or too long.", "Заголовок CSV недействителен или слишком длинный."));
         return;
       }
 
@@ -128,21 +132,21 @@ export function TransactionsCsvManager({ filters }: TransactionsCsvManagerProps)
       setMapping(Object.fromEntries(importColumns.filter((column) => header.includes(column.key)).map((column) => [column.key, column.key])));
     } catch {
       setFile(null);
-      setFileError("We could not read this CSV file. Please choose another file.");
+      setFileError(l("We could not read this CSV file. Please choose another file.", "Не удалось прочитать этот CSV-файл. Выберите другой файл."));
     }
   }
 
   return (
     <section aria-labelledby="csv-title" className={styles.csvPanel}>
-      <div><h2 id="csv-title">CSV import and export</h2><p>Export the transactions matching the applied filters, or preview a CSV before importing it.</p></div>
-      <div className={styles.actions}><button className={styles.secondaryButton} disabled={exportMutation.isPending} onClick={() => exportMutation.mutate()} type="button">{exportMutation.isPending ? "Exporting…" : "Export CSV"}</button></div>
-      {exportMutation.isError && <p className={styles.formError} role="alert">{errorMessage(exportMutation.error, "We could not export transactions. Please try again.")}</p>}
-      <div className={styles.field}><label htmlFor="csv-file">CSV file</label><input accept=".csv,text/csv" id="csv-file" onChange={(event) => void selectFile(event.target.files?.[0])} type="file" />{fileError && <p className={styles.fieldError} role="alert">{fileError}</p>}</div>
-      {headers.length > 0 && <fieldset className={styles.mapping}><legend>Column mapping</legend>{importColumns.map((column) => <div className={styles.field} key={column.key}><label htmlFor={`mapping-${column.key}`}>{column.label}{column.required ? " (required)" : " (optional)"}</label><select id={`mapping-${column.key}`} onChange={(event) => { setMapping((current) => ({ ...current, [column.key]: event.target.value })); setPreview(null); }} value={mapping[column.key] ?? ""}><option value="">{column.required ? "Select a CSV column" : "Do not import"}</option>{headers.map((header) => <option disabled={mapping[column.key] !== header && mappedHeaders.includes(header)} key={header} value={header}>{header}</option>)}</select></div>)}</fieldset>}
-      <div className={styles.actions}><button className={styles.primaryButton} disabled={!mappingIsComplete || previewMutation.isPending} onClick={() => previewMutation.mutate()} type="button">{previewMutation.isPending ? "Previewing…" : "Preview import"}</button><button className={styles.secondaryButton} disabled={preview === null || preview.lineErrors.length > 0 || confirmMutation.isPending} onClick={() => confirmMutation.mutate()} type="button">{confirmMutation.isPending ? "Importing…" : "Confirm import"}</button></div>
-      {previewMutation.isError && <p className={styles.formError} role="alert">{errorMessage(previewMutation.error, "We could not preview this CSV. Please try again.")}</p>}
-      {confirmMutation.isError && <p className={styles.formError} role="alert">{errorMessage(confirmMutation.error, "We could not import this CSV. Please try again.")}</p>}
-      {preview !== null && <><h3>Preview rows</h3>{preview.rows.length === 0 ? <p className={styles.empty}>This CSV has no data rows.</p> : <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Line</th><th>Category</th><th>Amount</th><th>Currency</th><th>Date</th><th>Type</th></tr></thead><tbody>{preview.rows.map((row) => <tr key={row.lineNumber}><td>{row.lineNumber}</td><td>{row.categoryId}</td><td>{row.amount}</td><td>{row.currency}</td><td>{row.transactionDate}</td><td>{row.transactionType}</td></tr>)}</tbody></table></div>}{preview.lineErrors.length > 0 && <div className={styles.lineErrors} role="alert"><h3>Rows with errors</h3><ul>{preview.lineErrors.map((error) => <li key={`${error.lineNumber}-${error.field}-${error.code}`}>Line {error.lineNumber}, {error.field}: {error.message}</li>)}</ul></div>}</>}
+      <div><h2 id="csv-title">{l("CSV import and export", "Импорт и экспорт CSV")}</h2><p>{l("Export the transactions matching the applied filters, or preview a CSV before importing it.", "Экспортируйте операции по применённым фильтрам или просмотрите CSV перед импортом.")}</p></div>
+      <div className={styles.actions}><button className={styles.secondaryButton} disabled={exportMutation.isPending} onClick={() => exportMutation.mutate()} type="button">{exportMutation.isPending ? l("Exporting…", "Экспорт…") : l("Export CSV", "Экспортировать CSV")}</button></div>
+      {exportMutation.isError && <p className={styles.formError} role="alert">{errorMessage(exportMutation.error, l("We could not export transactions. Please try again.", "Не удалось экспортировать операции. Попробуйте снова."))}</p>}
+      <div className={styles.field}><label htmlFor="csv-file">{l("CSV file", "CSV-файл")}</label><input accept=".csv,text/csv" id="csv-file" onChange={(event) => void selectFile(event.target.files?.[0])} type="file" />{fileError && <p className={styles.fieldError} role="alert">{fileError}</p>}</div>
+      {headers.length > 0 && <fieldset className={styles.mapping}><legend>{l("Column mapping", "Сопоставление столбцов")}</legend>{importColumns.map((column) => <div className={styles.field} key={column.key}><label htmlFor={`mapping-${column.key}`}>{l(column.label, russianColumnLabels[column.label] ?? column.label)}{column.required ? l(" (required)", " (обязательно)") : l(" (optional)", " (необязательно)")}</label><select id={`mapping-${column.key}`} onChange={(event) => { setMapping((current) => ({ ...current, [column.key]: event.target.value })); setPreview(null); }} value={mapping[column.key] ?? ""}><option value="">{column.required ? l("Select a CSV column", "Выберите столбец CSV") : l("Do not import", "Не импортировать")}</option>{headers.map((header) => <option disabled={mapping[column.key] !== header && mappedHeaders.includes(header)} key={header} value={header}>{header}</option>)}</select></div>)}</fieldset>}
+      <div className={styles.actions}><button className={styles.primaryButton} disabled={!mappingIsComplete || previewMutation.isPending} onClick={() => previewMutation.mutate()} type="button">{previewMutation.isPending ? l("Previewing…", "Подготовка…") : l("Preview import", "Предпросмотр импорта")}</button><button className={styles.secondaryButton} disabled={preview === null || preview.lineErrors.length > 0 || confirmMutation.isPending} onClick={() => confirmMutation.mutate()} type="button">{confirmMutation.isPending ? l("Importing…", "Импорт…") : l("Confirm import", "Подтвердить импорт")}</button></div>
+      {previewMutation.isError && <p className={styles.formError} role="alert">{errorMessage(previewMutation.error, l("We could not preview this CSV. Please try again.", "Не удалось подготовить предпросмотр CSV. Попробуйте снова."))}</p>}
+      {confirmMutation.isError && <p className={styles.formError} role="alert">{errorMessage(confirmMutation.error, l("We could not import this CSV. Please try again.", "Не удалось импортировать CSV. Попробуйте снова."))}</p>}
+      {preview !== null && <><h3>{l("Preview rows", "Строки предпросмотра")}</h3>{preview.rows.length === 0 ? <p className={styles.empty}>{l("This CSV has no data rows.", "В этом CSV нет строк данных.")}</p> : <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>{l("Line", "Строка")}</th><th>{l("Category", "Категория")}</th><th>{l("Amount", "Сумма")}</th><th>{l("Currency", "Валюта")}</th><th>{l("Date", "Дата")}</th><th>{l("Type", "Тип")}</th></tr></thead><tbody>{preview.rows.map((row) => <tr key={row.lineNumber}><td>{row.lineNumber}</td><td>{row.categoryId}</td><td>{row.amount}</td><td>{row.currency}</td><td>{row.transactionDate}</td><td>{row.transactionType}</td></tr>)}</tbody></table></div>}{preview.lineErrors.length > 0 && <div className={styles.lineErrors} role="alert"><h3>{l("Rows with errors", "Строки с ошибками")}</h3><ul>{preview.lineErrors.map((error) => <li key={`${error.lineNumber}-${error.field}-${error.code}`}>{l(`Line ${error.lineNumber}, ${error.field}: ${error.message}`, `Строка ${error.lineNumber}, ${error.field}: ${error.message}`)}</li>)}</ul></div>}</>}
     </section>
   );
 }

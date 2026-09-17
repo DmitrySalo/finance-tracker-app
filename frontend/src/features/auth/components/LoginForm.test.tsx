@@ -4,6 +4,8 @@ import { App } from "../../../App";
 import { setAccessToken } from "../../../shared/api/accessToken";
 import { apiRequest } from "../../../shared/api/client";
 
+localStorage.setItem("finance-tracker.locale", "en");
+
 afterEach(async () => {
   await act(async () => setAccessToken(null));
   vi.restoreAllMocks();

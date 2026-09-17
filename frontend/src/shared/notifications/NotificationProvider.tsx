@@ -1,6 +1,7 @@
 import { createContext, useCallback, useState } from "react";
 import type { ReactNode } from "react";
 import styles from "./NotificationProvider.module.css";
+import { useLocalization } from "../localization/LocalizationProvider";
 
 interface Notification {
   id: number;
@@ -18,6 +19,7 @@ interface NotificationProviderProps {
 }
 
 export function NotificationProvider({ children }: NotificationProviderProps) {
+  const { t } = useLocalization();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const notify = useCallback((message: string) => {
     setNotifications((current) => [...current, { id: Date.now(), message }]);
@@ -33,7 +35,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         {notifications.map((notification) => (
           <div className={styles.notification} key={notification.id} role="status">
             <span>{notification.message}</span>
-            <button aria-label="Dismiss notification" onClick={() => dismiss(notification.id)} type="button">Dismiss</button>
+            <button aria-label={t("notification.dismiss")} onClick={() => dismiss(notification.id)} type="button">{t("dismiss")}</button>
           </div>
         ))}
       </div>

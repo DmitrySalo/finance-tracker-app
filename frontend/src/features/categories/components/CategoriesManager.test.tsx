@@ -148,7 +148,7 @@ test("displays a server validation error next to the invalid field", async () =>
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Groceries" } });
   fireEvent.click(screen.getByRole("button", { name: "Save category" }));
 
-  expect(await screen.findByText("A category with this name already exists.")).toBeTruthy();
+  expect(await screen.findByText("The category contains an invalid value.")).toBeTruthy();
   expect(screen.getByRole("textbox", { name: "Name" }).getAttribute("aria-invalid")).toBe("true");
 });
 

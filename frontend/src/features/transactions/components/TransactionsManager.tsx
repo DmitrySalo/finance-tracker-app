@@ -7,6 +7,7 @@ import { z } from "zod";
 import { ApiClientError } from "../../../shared/api/client";
 import type { Category, Transaction } from "../../../shared/api/models";
 import { useNotifications } from "../../../shared/notifications/useNotifications";
+import { useLocalization } from "../../../shared/localization/LocalizationProvider";
 import {
   createTransaction,
   deleteTransaction,
@@ -19,17 +20,17 @@ import { categoryQueryKey, listCategories } from "../../categories/api/categorie
 import styles from "./TransactionsManager.module.css";
 import { TransactionsCsvManager } from "./TransactionsCsvManager";
 
-const transactionSchema = z.object({
-  categoryId: z.string().uuid("Enter a valid category ID."),
-  amount: z.string().regex(/^\d{1,15}(?:\.\d{1,4})?$/, "Enter a positive amount with up to 4 decimal places.").refine((value) => Number(value) > 0, "Enter a positive amount."),
-  currency: z.string().regex(/^[A-Z]{3}$/, "Use a three-letter uppercase currency code."),
-  exchangeRateToBase: z.string().regex(/^\d{1,11}(?:\.\d{1,8})?$/, "Enter a positive exchange rate with up to 8 decimal places.").refine((value) => Number(value) > 0, "Enter a positive exchange rate."),
-  transactionDate: z.string().date("Enter a transaction date."),
-  description: z.string().max(1000, "Use no more than 1000 characters."),
+function transactionSchema(l: (english: string, russian: string) => string) { return z.object({
+  categoryId: z.string().uuid(l("Enter a valid category ID.", "Введите корректный идентификатор категории.")),
+  amount: z.string().regex(/^\d{1,15}(?:\.\d{1,4})?$/, l("Enter a positive amount with up to 4 decimal places.", "Введите положительную сумму не более чем с 4 знаками после запятой.")).refine((value) => Number(value) > 0, l("Enter a positive amount.", "Введите положительную сумму.")),
+  currency: z.string().regex(/^[A-Z]{3}$/, l("Use a three-letter uppercase currency code.", "Используйте трёхбуквенный код валюты в верхнем регистре.")),
+  exchangeRateToBase: z.string().regex(/^\d{1,11}(?:\.\d{1,8})?$/, l("Enter a positive exchange rate with up to 8 decimal places.", "Введите положительный курс не более чем с 8 знаками после запятой.")).refine((value) => Number(value) > 0, l("Enter a positive exchange rate.", "Введите положительный курс.")),
+  transactionDate: z.string().date(l("Enter a transaction date.", "Введите дату операции.")),
+  description: z.string().max(1000, l("Use no more than 1000 characters.", "Используйте не более 1000 символов.")),
   transactionType: z.enum(["INCOME", "EXPENSE"]),
-});
+}); }
 
-type TransactionFormValues = z.infer<typeof transactionSchema>;
+type TransactionFormValues = z.infer<ReturnType<typeof transactionSchema>>;
 
 const initialFilters: TransactionFilters = { fromDate: "", toDate: "", categoryId: "", minAmount: "", maxAmount: "", transactionType: "" };
 const initialValues: TransactionFormValues = { categoryId: "", amount: "", currency: "USD", exchangeRateToBase: "1", transactionDate: "", description: "", transactionType: "EXPENSE" };
@@ -50,11 +51,11 @@ function formValues(transaction: Transaction): TransactionFormValues {
   return { categoryId: transaction.categoryId, amount: String(transaction.amount), currency: transaction.currency, exchangeRateToBase: String(transaction.exchangeRateToBase), transactionDate: transaction.transactionDate, description: transaction.description ?? "", transactionType: transaction.transactionType };
 }
 
-function applyServerViolations(error: unknown, setError: UseFormSetError<TransactionFormValues>): void {
+function applyServerViolations(error: unknown, setError: UseFormSetError<TransactionFormValues>, l: (english: string, russian: string) => string): void {
   if (!(error instanceof ApiClientError) || error.apiError.code !== "VALIDATION_FAILED") return;
   error.apiError.violations.forEach((violation) => {
     if (violation.field === "categoryId" || violation.field === "amount" || violation.field === "currency" || violation.field === "exchangeRateToBase" || violation.field === "transactionDate" || violation.field === "description" || violation.field === "transactionType") {
-      setError(violation.field, { type: "server", message: violation.message });
+      setError(violation.field, { type: "server", message: l("The transaction contains an invalid value.", "Операция содержит недопустимое значение.") });
     }
   });
 }
@@ -66,11 +67,12 @@ interface TransactionFormProps {
 }
 
 function TransactionForm({ transaction, onCancel, onSaved }: TransactionFormProps) {
+  const { l } = useLocalization();
   const { notify } = useNotifications();
   const queryClient = useQueryClient();
   const { control, formState: { errors, isSubmitting }, handleSubmit, register, setError } = useForm<TransactionFormValues>({
     defaultValues: transaction === null ? initialValues : formValues(transaction),
-    resolver: zodResolver(transactionSchema),
+    resolver: zodResolver(transactionSchema(l)),
   });
   const categoriesQuery = useQuery({ queryKey: [...categoryQueryKey, "all"], queryFn: ({ signal }) => listAllCategories(signal) });
   const transactionType = useWatch({ control, name: "transactionType" });
@@ -80,7 +82,7 @@ function TransactionForm({ transaction, onCancel, onSaved }: TransactionFormProp
     mutationFn: (input: TransactionInput) => transaction === null ? createTransaction(input) : updateTransaction(transaction, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: transactionQueryKey });
-      notify(transaction === null ? "Transaction created." : "Transaction updated.");
+      notify(transaction === null ? l("Transaction created.", "Операция создана.") : l("Transaction updated.", "Операция обновлена."));
       onSaved();
     },
   });
@@ -89,21 +91,21 @@ function TransactionForm({ transaction, onCancel, onSaved }: TransactionFormProp
     try {
       await mutation.mutateAsync({ ...values, description: values.description === "" ? transaction?.description ?? null : values.description });
     } catch (error) {
-      applyServerViolations(error, setError);
+      applyServerViolations(error, setError, l);
     }
   }
 
   return <form className={styles.form} noValidate onSubmit={handleSubmit(onSubmit)}>
-    <h2>{transaction === null ? "New transaction" : "Edit transaction"}</h2>
-    <div className={styles.field}><label htmlFor="transaction-category">Category</label><select aria-describedby={errors.categoryId ? "transaction-category-error" : undefined} aria-invalid={Boolean(errors.categoryId)} id="transaction-category" {...register("categoryId")}><option value="">Select a category</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.name}</option>)}</select>{categoriesQuery.isError && <p className={styles.fieldError} role="alert">We could not load categories. Please try again.</p>}{errors.categoryId && <p className={styles.fieldError} id="transaction-category-error" role="alert">{errors.categoryId.message}</p>}</div>
-    <FormField error={errors.amount?.message} label="Amount" name="amount" register={register} type="text" />
-    <FormField error={errors.currency?.message} label="Currency" name="currency" register={register} type="text" />
-    <FormField error={errors.exchangeRateToBase?.message} label="Exchange rate to base currency" name="exchangeRateToBase" register={register} type="text" />
-    <FormField error={errors.transactionDate?.message} label="Date" name="transactionDate" register={register} type="date" />
-    <div className={styles.field}><label htmlFor="transaction-type">Type</label><select id="transaction-type" {...register("transactionType")}><option value="EXPENSE">Expense</option><option value="INCOME">Income</option></select></div>
-    <FormField error={errors.description?.message} label="Description" name="description" register={register} type="text" />
-    {mutation.isError && !(mutation.error instanceof ApiClientError && mutation.error.apiError.code === "VALIDATION_FAILED") && <p className={styles.formError} role="alert">{mutation.error instanceof ApiClientError ? mutation.error.apiError.message : "We could not save the transaction. Please try again."}</p>}
-    <div className={styles.actions}><button className={styles.primaryButton} disabled={isSubmitting} type="submit">{isSubmitting ? "Saving…" : "Save transaction"}</button><button className={styles.secondaryButton} disabled={isSubmitting} onClick={onCancel} type="button">Cancel</button></div>
+    <h2>{transaction === null ? l("New transaction", "Новая операция") : l("Edit transaction", "Изменить операцию")}</h2>
+    <div className={styles.field}><label htmlFor="transaction-category">{l("Category", "Категория")}</label><select aria-describedby={errors.categoryId ? "transaction-category-error" : undefined} aria-invalid={Boolean(errors.categoryId)} id="transaction-category" {...register("categoryId")}><option value="">{l("Select a category", "Выберите категорию")}</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.name}</option>)}</select>{categoriesQuery.isError && <p className={styles.fieldError} role="alert">{l("We could not load categories. Please try again.", "Не удалось загрузить категории. Попробуйте снова.")}</p>}{errors.categoryId && <p className={styles.fieldError} id="transaction-category-error" role="alert">{errors.categoryId.message}</p>}</div>
+    <FormField error={errors.amount?.message} label={l("Amount", "Сумма")} name="amount" register={register} type="text" />
+    <FormField error={errors.currency?.message} label={l("Currency", "Валюта")} name="currency" register={register} type="text" />
+    <FormField error={errors.exchangeRateToBase?.message} label={l("Exchange rate to base currency", "Курс к основной валюте")} name="exchangeRateToBase" register={register} type="text" />
+    <FormField error={errors.transactionDate?.message} label={l("Date", "Дата")} name="transactionDate" register={register} type="date" />
+    <div className={styles.field}><label htmlFor="transaction-type">{l("Type", "Тип")}</label><select id="transaction-type" {...register("transactionType")}><option value="EXPENSE">{l("Expense", "Расход")}</option><option value="INCOME">{l("Income", "Доход")}</option></select></div>
+    <FormField error={errors.description?.message} label={l("Description", "Описание")} name="description" register={register} type="text" />
+    {mutation.isError && !(mutation.error instanceof ApiClientError && mutation.error.apiError.code === "VALIDATION_FAILED") && <p className={styles.formError} role="alert">{l("We could not save the transaction. Please try again.", "Не удалось сохранить операцию. Попробуйте снова.")}</p>}
+    <div className={styles.actions}><button className={styles.primaryButton} disabled={isSubmitting} type="submit">{isSubmitting ? l("Saving…", "Сохранение…") : l("Save transaction", "Сохранить операцию")}</button><button className={styles.secondaryButton} disabled={isSubmitting} onClick={onCancel} type="button">{l("Cancel", "Отмена")}</button></div>
   </form>;
 }
 
@@ -119,6 +121,7 @@ interface TransactionRowsProps {
 }
 
 function DeleteConfirmation({ transaction, onCancel, onDeleted }: { transaction: Transaction; onCancel: () => void; onDeleted: () => void }) {
+  const { l } = useLocalization();
   const cancelButton = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLElement>(null);
   const mutation = useMutation({ mutationFn: deleteTransaction, onSuccess: onDeleted });
@@ -143,7 +146,7 @@ function DeleteConfirmation({ transaction, onCancel, onDeleted }: { transaction:
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [mutation.isPending, onCancel]);
 
-  return <div className={styles.dialogBackdrop}><section aria-describedby="delete-transaction-description" aria-labelledby="delete-transaction-title" aria-modal="true" className={styles.dialog} ref={dialog} role="dialog" tabIndex={-1}><h2 id="delete-transaction-title">Delete transaction?</h2><p id="delete-transaction-description">Delete this transaction? This action cannot be undone.</p>{mutation.isError && <p className={styles.formError} role="alert">{mutation.error instanceof ApiClientError ? mutation.error.apiError.message : "We could not delete the transaction. Please try again."}</p>}<div className={styles.actions}><button className={styles.dangerButton} disabled={mutation.isPending} onClick={() => mutation.mutate(transaction)} type="button">{mutation.isPending ? "Deleting…" : "Delete transaction"}</button><button className={styles.secondaryButton} disabled={mutation.isPending} onClick={onCancel} ref={cancelButton} type="button">Cancel</button></div></section></div>;
+  return <div className={styles.dialogBackdrop}><section aria-describedby="delete-transaction-description" aria-labelledby="delete-transaction-title" aria-modal="true" className={styles.dialog} ref={dialog} role="dialog" tabIndex={-1}><h2 id="delete-transaction-title">{l("Delete transaction?", "Удалить операцию?")}</h2><p id="delete-transaction-description">{l("Delete this transaction? This action cannot be undone.", "Удалить эту операцию? Это действие нельзя отменить.")}</p>{mutation.isError && <p className={styles.formError} role="alert">{l("We could not delete the transaction. Please try again.", "Не удалось удалить операцию. Попробуйте снова.")}</p>}<div className={styles.actions}><button className={styles.dangerButton} disabled={mutation.isPending} onClick={() => mutation.mutate(transaction)} type="button">{mutation.isPending ? l("Deleting…", "Удаление…") : l("Delete transaction", "Удалить операцию")}</button><button className={styles.secondaryButton} disabled={mutation.isPending} onClick={onCancel} ref={cancelButton} type="button">{l("Cancel", "Отмена")}</button></div></section></div>;
 }
 
 function useMobileLayout(): boolean {
@@ -160,16 +163,18 @@ function useMobileLayout(): boolean {
 }
 
 function TransactionRows({ transactions, onEdit, onDelete }: TransactionRowsProps) {
+  const { l } = useLocalization();
   const isMobileLayout = useMobileLayout();
   function actions(transaction: Transaction) {
-    return <div className={styles.rowActions}><button onClick={() => onEdit(transaction)} type="button">Edit transaction</button><button onClick={() => onDelete(transaction)} type="button">Delete transaction</button></div>;
+    return <div className={styles.rowActions}><button onClick={() => onEdit(transaction)} type="button">{l("Edit transaction", "Изменить операцию")}</button><button onClick={() => onDelete(transaction)} type="button">{l("Delete transaction", "Удалить операцию")}</button></div>;
   }
 
-  if (isMobileLayout) return <ul aria-label="Transaction cards" className={styles.cards}>{transactions.map((transaction) => <li className={styles.card} key={transaction.id}><div className={styles.cardHeader}><strong>{transaction.amount} {transaction.currency}</strong><span>{transaction.transactionDate}</span></div><p className={styles.cardDetails}>{transaction.transactionType === "EXPENSE" ? "Expense" : "Income"} · {transaction.categoryId}</p>{transaction.description && <p className={styles.cardDetails}>{transaction.description}</p>}{actions(transaction)}</li>)}</ul>;
-  return <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Category</th><th>Description</th><th>Actions</th></tr></thead><tbody>{transactions.map((transaction) => <tr key={transaction.id}><td>{transaction.transactionDate}</td><td>{transaction.transactionType === "EXPENSE" ? "Expense" : "Income"}</td><td>{transaction.amount} {transaction.currency}</td><td>{transaction.categoryId}</td><td>{transaction.description ?? "—"}</td><td>{actions(transaction)}</td></tr>)}</tbody></table></div>;
+  if (isMobileLayout) return <ul aria-label={l("Transaction cards", "Карточки операций")} className={styles.cards}>{transactions.map((transaction) => <li className={styles.card} key={transaction.id}><div className={styles.cardHeader}><strong>{transaction.amount} {transaction.currency}</strong><span>{transaction.transactionDate}</span></div><p className={styles.cardDetails}>{transaction.transactionType === "EXPENSE" ? l("Expense", "Расход") : l("Income", "Доход")} · {transaction.categoryId}</p>{transaction.description && <p className={styles.cardDetails}>{transaction.description}</p>}{actions(transaction)}</li>)}</ul>;
+  return <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>{l("Date", "Дата")}</th><th>{l("Type", "Тип")}</th><th>{l("Amount", "Сумма")}</th><th>{l("Category", "Категория")}</th><th>{l("Description", "Описание")}</th><th>{l("Actions", "Действия")}</th></tr></thead><tbody>{transactions.map((transaction) => <tr key={transaction.id}><td>{transaction.transactionDate}</td><td>{transaction.transactionType === "EXPENSE" ? l("Expense", "Расход") : l("Income", "Доход")}</td><td>{transaction.amount} {transaction.currency}</td><td>{transaction.categoryId}</td><td>{transaction.description ?? "—"}</td><td>{actions(transaction)}</td></tr>)}</tbody></table></div>;
 }
 
 export function TransactionsManager() {
+  const { l } = useLocalization();
   const [filters, setFilters] = useState(initialFilters);
   const [draftFilters, setDraftFilters] = useState(initialFilters);
   const [page, setPage] = useState(0);
@@ -185,24 +190,24 @@ export function TransactionsManager() {
   }
 
   return <section className={styles.page}>
-    <header className={styles.header}><div><h1>Transactions</h1><p>Review, filter, and manage your income and expenses.</p></div><div className={styles.headerActions}><button className={styles.secondaryButton} onClick={() => { setDraftFilters(initialFilters); setFilters(initialFilters); setPage(0); }} type="button">Reset filters</button><button className={styles.primaryButton} onClick={() => setEditedTransaction(null)} type="button">Add transaction</button></div></header>
+    <header className={styles.header}><div><h1>{l("Transactions", "Операции")}</h1><p>{l("Review, filter, and manage your income and expenses.", "Просматривайте, фильтруйте и управляйте доходами и расходами.")}</p></div><div className={styles.headerActions}><button className={styles.secondaryButton} onClick={() => { setDraftFilters(initialFilters); setFilters(initialFilters); setPage(0); }} type="button">{l("Reset filters", "Сбросить фильтры")}</button><button className={styles.primaryButton} onClick={() => setEditedTransaction(null)} type="button">{l("Add transaction", "Добавить операцию")}</button></div></header>
     {editedTransaction !== undefined && <TransactionForm key={editedTransaction?.id ?? "new"} onCancel={() => setEditedTransaction(undefined)} onSaved={() => setEditedTransaction(undefined)} transaction={editedTransaction} />}
-    <form className={styles.filterPanel} onSubmit={(event) => { event.preventDefault(); setFilters(draftFilters); setPage(0); }}><h2>Filters</h2><div className={styles.filters}>
-      <FilterField label="From date" name="fromDate" onChange={changeFilter} type="date" value={draftFilters.fromDate} />
-      <FilterField label="To date" name="toDate" onChange={changeFilter} type="date" value={draftFilters.toDate} />
-      <div className={styles.field}><label htmlFor="filter-category">Category</label><select id="filter-category" onChange={(event) => changeFilter("categoryId", event.target.value)} value={draftFilters.categoryId}><option value="">All categories</option>{categoriesQuery.data?.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.name}</option>)}</select></div>
-      <FilterField label="Minimum amount" name="minAmount" onChange={changeFilter} type="text" value={draftFilters.minAmount} />
-      <FilterField label="Maximum amount" name="maxAmount" onChange={changeFilter} type="text" value={draftFilters.maxAmount} />
-      <div className={styles.field}><label htmlFor="filter-type">Type</label><select id="filter-type" onChange={(event) => changeFilter("transactionType", event.target.value)} value={draftFilters.transactionType}><option value="">All types</option><option value="EXPENSE">Expense</option><option value="INCOME">Income</option></select></div><button className={styles.primaryButton} type="submit">Apply filters</button>
+    <form className={styles.filterPanel} onSubmit={(event) => { event.preventDefault(); setFilters(draftFilters); setPage(0); }}><h2>{l("Filters", "Фильтры")}</h2><div className={styles.filters}>
+      <FilterField label={l("From date", "С даты")} name="fromDate" onChange={changeFilter} type="date" value={draftFilters.fromDate} />
+      <FilterField label={l("To date", "По дату")} name="toDate" onChange={changeFilter} type="date" value={draftFilters.toDate} />
+      <div className={styles.field}><label htmlFor="filter-category">{l("Category", "Категория")}</label><select id="filter-category" onChange={(event) => changeFilter("categoryId", event.target.value)} value={draftFilters.categoryId}><option value="">{l("All categories", "Все категории")}</option>{categoriesQuery.data?.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.name}</option>)}</select></div>
+      <FilterField label={l("Minimum amount", "Минимальная сумма")} name="minAmount" onChange={changeFilter} type="text" value={draftFilters.minAmount} />
+      <FilterField label={l("Maximum amount", "Максимальная сумма")} name="maxAmount" onChange={changeFilter} type="text" value={draftFilters.maxAmount} />
+      <div className={styles.field}><label htmlFor="filter-type">{l("Type", "Тип")}</label><select id="filter-type" onChange={(event) => changeFilter("transactionType", event.target.value)} value={draftFilters.transactionType}><option value="">{l("All types", "Все типы")}</option><option value="EXPENSE">{l("Expense", "Расход")}</option><option value="INCOME">{l("Income", "Доход")}</option></select></div><button className={styles.primaryButton} type="submit">{l("Apply filters", "Применить фильтры")}</button>
     </div></form>
     <TransactionsCsvManager filters={filters} />
-    <div className={styles.field}><label htmlFor="sort">Sort by</label><select id="sort" onChange={(event) => { setSort(event.target.value as TransactionSort); setPage(0); }} value={sort}><option value="transactionDate,desc">Date: newest first</option><option value="transactionDate,asc">Date: oldest first</option><option value="amount,desc">Amount: highest first</option><option value="amount,asc">Amount: lowest first</option></select></div>
-    {transactionsQuery.isPending && <p role="status">Loading transactions…</p>}
-    {transactionsQuery.isError && <p className={styles.formError} role="alert">We could not load transactions. Please refresh the page.</p>}
-    {transactionsQuery.data?.items.length === 0 && <p className={styles.empty}>No transactions match these filters.</p>}
+    <div className={styles.field}><label htmlFor="sort">{l("Sort by", "Сортировать")}</label><select id="sort" onChange={(event) => { setSort(event.target.value as TransactionSort); setPage(0); }} value={sort}><option value="transactionDate,desc">{l("Date: newest first", "Дата: сначала новые")}</option><option value="transactionDate,asc">{l("Date: oldest first", "Дата: сначала старые")}</option><option value="amount,desc">{l("Amount: highest first", "Сумма: сначала большие")}</option><option value="amount,asc">{l("Amount: lowest first", "Сумма: сначала маленькие")}</option></select></div>
+    {transactionsQuery.isPending && <p role="status">{l("Loading transactions…", "Загрузка операций…")}</p>}
+    {transactionsQuery.isError && <p className={styles.formError} role="alert">{l("We could not load transactions. Please refresh the page.", "Не удалось загрузить операции. Обновите страницу.")}</p>}
+    {transactionsQuery.data?.items.length === 0 && <p className={styles.empty}>{l("No transactions match these filters.", "Нет операций, соответствующих этим фильтрам.")}</p>}
     {transactionsQuery.data !== undefined && transactionsQuery.data.items.length > 0 && <TransactionRows onDelete={setDeletedTransaction} onEdit={setEditedTransaction} transactions={transactionsQuery.data.items} />}
-    {transactionsQuery.data !== undefined && transactionsQuery.data.page.totalPages > 1 && <nav aria-label="Transaction pages" className={styles.pagination}><button disabled={page === 0} onClick={() => setPage((current) => current - 1)} type="button">Previous page</button><span>Page {page + 1} of {transactionsQuery.data.page.totalPages}</span><button disabled={page + 1 === transactionsQuery.data.page.totalPages} onClick={() => setPage((current) => current + 1)} type="button">Next page</button></nav>}
-    {deletedTransaction !== null && <DeleteConfirmation onCancel={() => setDeletedTransaction(null)} onDeleted={() => { void queryClient.invalidateQueries({ queryKey: transactionQueryKey }); notify("Transaction deleted."); if (transactionsQuery.data?.items.length === 1 && page > 0) setPage((current) => current - 1); setDeletedTransaction(null); }} transaction={deletedTransaction} />}
+    {transactionsQuery.data !== undefined && transactionsQuery.data.page.totalPages > 1 && <nav aria-label={l("Transaction pages", "Страницы операций")} className={styles.pagination}><button disabled={page === 0} onClick={() => setPage((current) => current - 1)} type="button">{l("Previous page", "Предыдущая страница")}</button><span>{l(`Page ${page + 1} of ${transactionsQuery.data.page.totalPages}`, `Страница ${page + 1} из ${transactionsQuery.data.page.totalPages}`)}</span><button disabled={page + 1 === transactionsQuery.data.page.totalPages} onClick={() => setPage((current) => current + 1)} type="button">{l("Next page", "Следующая страница")}</button></nav>}
+    {deletedTransaction !== null && <DeleteConfirmation onCancel={() => setDeletedTransaction(null)} onDeleted={() => { void queryClient.invalidateQueries({ queryKey: transactionQueryKey }); notify(l("Transaction deleted.", "Операция удалена.")); if (transactionsQuery.data?.items.length === 1 && page > 0) setPage((current) => current - 1); setDeletedTransaction(null); }} transaction={deletedTransaction} />}
   </section>;
 }
 

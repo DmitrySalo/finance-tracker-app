@@ -175,6 +175,7 @@ frontend/src/
 - Recharts получает уже агрегированные dashboard response, не вычисляет финансовые итоги из неограниченного списка транзакций в браузере.
 - UI адаптивен: таблица транзакций на mobile превращается в карточки, фильтры доступны в сворачиваемой панели, действия доступны с клавиатуры, поля имеют labels и видимый focus.
 - Пользовательский текст выводится стандартным экранированием React. `dangerouslySetInnerHTML` не используется. Токены не хранятся в `localStorage`.
+- Пользовательский интерфейс локализован на русский и английский языки. Выбор языка доступен на публичных и защищенных маршрутах, сохраняется в `localStorage`, применяется ко всему пользовательскому тексту и устанавливает атрибут `lang` корневого HTML-элемента.
 
 Маршруты: `/login`, `/register`, `/dashboard`, `/transactions`, `/categories`, `/budgets`, `/recurring-transactions`, `/audit-logs`.
 
@@ -279,10 +280,13 @@ Backend-исходники изолированы в `backend/src/`: production-
 
 **Шаг 30. Реализовать UI повторяющихся операций и аудита.** Добавить CRUD recurring rules и paginated/filterable audit log для транзакций и бюджетов. Результат: component tests покрывают activation, форму правила и отображение before/after state.
 
+**Шаг 31. Локализовать пользовательский интерфейс.** Добавить переключатель русского и английского языков на публичных и защищенных маршрутах, централизовать переводы пользовательского текста, сохранять выбранную локаль в браузере и устанавливать HTML-атрибут `lang`. Результат: интерфейс полностью переключается между русским и английским языками, выбор сохраняется после перезагрузки; component tests подтверждают переключение и восстановление локали.
+
 ### Поставка и финальная проверка
 
-**Шаг 31. Контейнеризировать приложение.** Добавить Dockerfile backend, multi-stage Dockerfile frontend, Nginx proxy configuration, `.env.example` с фиктивными значениями и `compose.yaml` с volumes, healthchecks и зависимостями. Результат: в чистом окружении `docker compose up --build` запускает три контейнера и открывает приложение.
+**Шаг 32. Контейнеризировать приложение.** Добавить Dockerfile backend, multi-stage Dockerfile frontend, Nginx proxy configuration, `.env.example` с фиктивными значениями и `compose.yaml` с volumes, healthchecks и зависимостями. Результат: в чистом окружении `docker compose up --build` запускает три контейнера и открывает приложение.
 
-**Шаг 32. Добавить CI.** Создать GitHub Actions workflow: backend test/verify, frontend lint/test/build, при необходимости Docker build; включить dependency/secret scanning, не отключая проверки ради зеленого pipeline. Результат: workflow запускается на push и pull request.
+**Шаг 33. Добавить CI.** Создать GitHub Actions workflow: backend test/verify, frontend lint/test/build, при необходимости Docker build; включить dependency/secret scanning, не отключая проверки ради зеленого pipeline. Результат: workflow запускается на push и pull request.
 
-**Шаг 33. Добавить E2E и завершить документацию.** Реализовать Playwright flow login -> transaction -> budget/dashboard -> CSV export/import, обновить README инструкциями запуска, переменными, demo accounts и Swagger URL. Результат: выполнено не менее 10 unit/integration тестов, ключевой E2E flow проходит, README позволяет поднять приложение без дополнительной настройки.
+**Шаг 34. Добавить E2E и завершить документацию.** Реализовать Playwright flow login -> transaction -> budget/dashboard -> CSV export/import, обновить README инструкциями запуска, переменными, demo accounts и Swagger URL. Результат: выполнено не менее 10 unit/integration тестов, ключевой E2E flow проходит, README позволяет поднять приложение без дополнительной настройки.
+

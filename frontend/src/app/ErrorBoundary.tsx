@@ -1,5 +1,6 @@
 import { Component } from "react";
-import type { ReactNode } from "react";
+import type { ContextType, ReactNode } from "react";
+import { LocalizationContext } from "../shared/localization/LocalizationProvider";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -10,6 +11,8 @@ interface ErrorBoundaryState {
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public static contextType = LocalizationContext;
+  declare context: ContextType<typeof LocalizationContext>;
   public state: ErrorBoundaryState = { hasError: false };
 
   public static getDerivedStateFromError(): ErrorBoundaryState {
@@ -24,8 +27,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (this.state.hasError) {
       return (
         <main aria-labelledby="application-error-title" className="error-page">
-          <h1 id="application-error-title">Something went wrong</h1>
-          <p>Please refresh the page and try again.</p>
+           <h1 id="application-error-title">{this.context?.t("error.title")}</h1>
+           <p>{this.context?.t("error.refresh")}</p>
         </main>
       );
     }

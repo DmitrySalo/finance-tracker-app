@@ -5,10 +5,10 @@ import "./app/global.css";
 
 export function App() {
   return (
-    <ErrorBoundary>
-      <AppProviders>
+    <AppProviders>
+      <ErrorBoundary>
         <AppRouter />
-      </AppProviders>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </AppProviders>
   );
 }

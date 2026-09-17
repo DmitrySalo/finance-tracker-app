@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { NotificationProvider } from "../shared/notifications/NotificationProvider";
+import { LocalizationProvider } from "../shared/localization/LocalizationProvider";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,8 +18,6 @@ interface AppProvidersProps {
 
 export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <NotificationProvider>{children}</NotificationProvider>
-    </QueryClientProvider>
+    <LocalizationProvider><QueryClientProvider client={queryClient}><NotificationProvider>{children}</NotificationProvider></QueryClientProvider></LocalizationProvider>
   );
 }
