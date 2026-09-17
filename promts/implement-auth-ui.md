@@ -1,0 +1,3 @@
+# Шаг 24. Реализовать auth UI
+
+Выполни только шаг 24 в отдельной сессии: register/login forms с React Hook Form и Zod, in-memory session state, logout и guard private routes. Component tests: client validation, successful login, redirect on 401. Соблюдай AGENTS and frontend/testing/security instructions/skills. Study foundation and backend API contracts. Use existing patterns, no localStorage. At end npm lint/test/build and ./gradlew verify; independent frontend code review and fix critical issues; prompt file, REPORT next sequential record, git status/diff/log then one scoped commit to develop. Return summary/hash/files/commands exact results.

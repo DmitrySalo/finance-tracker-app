@@ -1,0 +1,3 @@
+# Реализовать UI транзакций
+
+В отдельной сессии реализуй ТОЛЬКО шаг 26 ARCHITECTURE.md: адаптивный список transactions, filters, сортировка, pagination, create/edit/delete forms; на mobile table becomes cards. Tests: query serialization, paging, forms, mobile layout. Follow AGENTS and relevant react frontend/testing/security/API skills/docs; inspect backend contract and current UI. Do not implement CSV UI (step 27). At end npm lint/test/build plus ./gradlew verify; independent frontend review and fix critical findings; prompt, next REPORT record, inspect git status/diff/log, one scoped commit develop. Return summary/hash/files/exact results.

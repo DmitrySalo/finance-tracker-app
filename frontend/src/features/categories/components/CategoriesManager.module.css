@@ -1,0 +1,40 @@
+.page { display: grid; gap: var(--space-6); max-width: 54rem; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.header h1, .header p, .form h2 { margin: 0; }
+.header p { margin-top: var(--space-2); color: var(--color-text-muted); }
+.form, .list, .empty { padding: var(--space-6); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }
+.form { display: grid; gap: var(--space-4); }
+.field { display: grid; gap: var(--space-2); font-weight: 600; }
+.field input, .field select { width: 100%; padding: var(--space-3); color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+.field input[aria-invalid="true"] { border-color: #b42318; }
+.selector { display: grid; gap: var(--space-2); padding: 0; border: 0; font-weight: 600; }
+.options, .actions, .rowActions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.iconOption, .colorOption { width: 2.75rem; height: 2.75rem; padding: 0; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; }
+.colorOption { border: 0.25rem solid var(--color-surface); outline: 1px solid var(--color-border); }
+.colorOption[data-color="#2457D6"], .categoryColor[data-color="#2457D6"] { background: #2457d6; }
+.colorOption[data-color="#0F766E"], .categoryColor[data-color="#0F766E"] { background: #0f766e; }
+.colorOption[data-color="#B45309"], .categoryColor[data-color="#B45309"] { background: #b45309; }
+.colorOption[data-color="#B42318"], .categoryColor[data-color="#B42318"] { background: #b42318; }
+.colorOption[data-color="#7C3AED"], .categoryColor[data-color="#7C3AED"] { background: #7c3aed; }
+.colorOption[data-color="#475569"], .categoryColor[data-color="#475569"] { background: #475569; }
+.iconOption[aria-pressed="true"], .colorOption[aria-pressed="true"] { outline: 0.1875rem solid var(--color-primary); outline-offset: 0.125rem; }
+.primaryButton, .secondaryButton, .dangerButton, .rowActions button { padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); cursor: pointer; font-weight: 700; }
+.primaryButton { color: var(--color-on-primary); background: var(--color-primary); border: 0; }
+.secondaryButton, .rowActions button { color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); }
+.dangerButton { color: #ffffff; background: #b42318; border: 0; }
+.primaryButton:disabled, .secondaryButton:disabled, .dangerButton:disabled { cursor: wait; opacity: 0.7; }
+.fieldError, .formError { margin: 0; color: #b42318; }
+.list { display: grid; gap: var(--space-2); margin: 0; list-style: none; }
+.category { display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border); }
+.category:last-child { border-bottom: 0; }
+.categoryColor { width: 0.75rem; height: 2rem; border-radius: var(--radius-sm); }
+.categoryIcon { font-size: 1.5rem; }
+.categoryDetails { display: grid; gap: var(--space-1); }
+.categoryDetails small { color: var(--color-text-muted); }
+.pagination { display: flex; align-items: center; justify-content: center; gap: var(--space-3); }
+.pagination button { padding: var(--space-2) var(--space-3); color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; }
+.pagination button:disabled { cursor: not-allowed; opacity: 0.6; }
+.dialogBackdrop { position: fixed; inset: 0; display: grid; padding: var(--page-padding); background: rgb(23 32 51 / 45%); place-items: center; }
+.dialog { width: min(100%, 30rem); padding: var(--space-6); background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }
+.dialog h2 { margin-top: 0; }
+@media (max-width: 40rem) { .header, .category { align-items: stretch; } .header { flex-direction: column; } .header .primaryButton { width: 100%; } .category { grid-template-columns: auto auto 1fr; } .rowActions { grid-column: 1 / -1; } .rowActions button { flex: 1; } }

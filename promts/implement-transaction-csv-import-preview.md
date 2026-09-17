@@ -1,0 +1,3 @@
+# Реализовать preview CSV-импорта
+
+Выполни ТОЛЬКО шаг 19 `ARCHITECTURE.md`: preview CSV-импорта. Добавь multipart validation, безопасный CSV parser, mapping входных колонок, лимиты и result DTO с line errors без сохранения. Tests: корректный файл, неизвестная колонка, неверные amount/date/currency и превышение лимита. Соблюдай AGENTS и все обязательные инструкции (architecture, Java style, database, API, testing, security), изучи текущий код. Минимальное решение, без шага 20. Заверши: tests + `./gradlew verify`, independent review and fixes, promts prompt, next REPORT entry, inspect git status/diff/log, one correctly scoped commit in develop. Return commit hash, summary, exact verification results, files.
