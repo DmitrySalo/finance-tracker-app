@@ -1,0 +1,76 @@
+# Отчет о функциональном тестировании
+
+**Дата:** 2026-09-17
+**Приложение:** Finance Tracker
+**Стенд:** Docker Compose, локальная машина Windows; `postgres:18-alpine`, Spring Boot backend и React SPA.
+**URL:** `http://localhost:8080`
+**Браузер:** Google Chrome, headless, запущен Playwright с системным executable `C:\Program Files\Google\Chrome\Application\chrome.exe`.
+
+## Изученные автоматизированные тесты
+
+Перед ручной проверкой изучены backend-тесты в `backend/src/test/java/` и frontend-тесты в `frontend/src/` и `frontend/e2e/`.
+
+Backend-набор покрывает:
+
+- создание Spring context, конфигурацию, общий error contract, CORS, health и OpenAPI;
+- регистрацию, login, JWT-защиту и rate limit;
+- миграции PostgreSQL и ограничения схемы;
+- CRUD, ownership, optimistic locking, валидацию и пагинацию категорий, операций, бюджетов и recurring rules;
+- фильтрацию, сортировку, экспорт и атомарный CSV-импорт;
+- расчет бюджетов, dashboard, аудит и scheduler recurring operations.
+
+Frontend-набор Vitest покрывает:
+
+- guard маршрутов, in-memory сессию и локализацию;
+- формы регистрации и входа, включая клиентскую валидацию и rate limit;
+- компоненты категорий, операций, CSV, бюджетов, dashboard, recurring rules и audit log;
+- адаптивное карточное отображение операций и доступные текстовые альтернативы графиков и progress bar.
+
+Сквозной тест `frontend/e2e/finance-flow.spec.ts` покрывает регистрацию, вход, создание категории, операции и бюджета, обновление dashboard, экспорт CSV, preview и подтверждение импорта.
+
+## Тест-кейсы и результаты
+
+Для изоляции данных каждый успешный сценарий использовал новый уникальный email и уникальные названия тестовых сущностей. Действия выполнялись через пользовательские элементы интерфейса: поля с label, ссылки и кнопки.
+
+| ID | Тест-кейс | Шаги | Ожидаемый результат | Факт | Статус |
+|---|---|---|---|---|---|
+| TC-01 | Локализация интерфейса | Открыть `/login`; сменить значение `Язык` с `Русский` на `English`. | Атрибут HTML `lang` меняется с `ru` на `en`, пользовательский текст становится английским. | `lang` изменился на `en`; дальнейшие действия выполнены с английскими labels. | PASS |
+| TC-02 | Валидация регистрации | На форме регистрации отправить пустую форму. | Поля с некорректными обязательными данными показывают сообщения валидации. | Отображены поля с ролью `alert`. | PASS |
+| TC-03 | Регистрация и вход | Зарегистрировать уникального пользователя с валидным паролем и USD; войти под этой учетной записью. | Регистрация переводит на login, успешный login открывает dashboard. | Переходы `/register -> /login -> /dashboard` выполнены. | PASS |
+| TC-04 | CRUD категории | Создать расходную категорию; изменить название. | Категория отображается в списке, после сохранения видно новое название. | Создание и изменение успешно сохранены и отображены. | PASS |
+| TC-05 | Создание и фильтрация операции | Создать расходную операцию на 42.50 USD в созданной категории; применить фильтр суммы 40-50. | Операция создана и остается в результатах фильтра. | Операция найдена в списке и после фильтрации. | PASS |
+| TC-06 | Редактирование операции | Нажать `Edit transaction` сразу после создания операции, не закрывая уведомление. | Должна открыться форма редактирования. | Форма редактирования открылась; toast не препятствовал клику. | PASS |
+| TC-07 | Редактирование операции после закрытия уведомления | Закрыть toast кнопкой `Dismiss notification`; изменить описание операции и сохранить. | В списке появляется новое описание. | Описание обновлено и отображено. | PASS |
+| TC-08 | Бюджет и прогресс | Создать бюджет 100 USD для тестовой расходной категории в текущем месяце. | Бюджет создан; progress bar показывает расход 42.50 USD и доступный текстовый статус. | Progress bar отображен с рассчитанными значениями. | PASS |
+| TC-09 | Recurring rule | Создать активное правило; нажать `Pause rule`, затем `Activate rule`. | Правило создается, статус поочередно меняется на paused и active, выводятся уведомления. | Оба действия успешны: `Recurring rule paused.` и `Recurring rule activated.`. | PASS |
+| TC-10 | Audit log | Открыть Audit log; выбрать тип ресурса `TRANSACTION`; применить фильтр. | Журнал содержит действия создания и изменения с состояниями до/после. | В UI отображены `Created` и `Updated`; фильтр применен. | PASS |
+| TC-11 | Удаление операции | Сбросить фильтры; удалить тестовую операцию через диалог подтверждения. | Открывается модальный диалог; после подтверждения операция удаляется, показано уведомление. | Диалог показан, удаление успешно, отображено `Transaction deleted.`. | PASS |
+| TC-12 | Некорректный CSV-заголовок | На странице операций выбрать CSV с повторяющимся заголовком `amount,amount`. | Импорт не предлагается; показано безопасное сообщение об ошибке заголовка. | Показано `The CSV header is invalid or too long.` | PASS |
+| TC-13 | Сквозной CSV flow | Выполнить E2E flow: экспорт текущих операций, загрузка скачанного CSV, preview и подтверждение. | Скачивается `transactions.csv`; preview успешен; импорт создает одну операцию. | Выполнено существующим Playwright-сценарием: `1 transaction imported.` | PASS |
+| TC-14 | Обновление dashboard | В E2E flow создать бюджет и операцию, открыть Dashboard и выбрать текущий месяц. | Категория и расход операции видны в dashboard. | Тест нашел категорию и сумму 42.5 в dashboard. | PASS |
+
+## Команды и результаты
+
+| Команда | Результат |
+|---|---|
+| `docker compose up --build --detach --wait` | PASS. Образы backend и frontend собраны; контейнеры `postgres`, `backend`, `frontend` запущены и имеют статус `healthy`. |
+| `docker compose ps` | PASS. Frontend опубликован на `0.0.0.0:8080`; backend и PostgreSQL доступны внутри Compose-сети. |
+| `curl.exe --fail --silent --show-error http://localhost:8080/health` | PASS. Endpoint frontend health ответил успешно без тела. |
+| `npm run test:e2e` | BLOCKED. Playwright Chromium отсутствовал локально. |
+| `npx playwright install chromium` | BLOCKED. Загрузка Chromium пять раз завершилась тайм-аутом CDN. |
+| `$env:PLAYWRIGHT_EXECUTABLE_PATH = 'C:\Program Files\Google\Chrome\Application\chrome.exe'; npm run test:e2e` | PASS. E2E после исправления DEF-01: `1 passed (3.8s)`. |
+| Расширенный Playwright browser flow через системный Chrome | PASS. `MANUAL_UI_CHECKS_PASSED`; исходная функциональная проверка покрыла TC-01--TC-05 и TC-07--TC-12. TC-06 был воспроизведен отдельно, затем исправлен и перепроверен E2E-регрессией. |
+| `./gradlew verify --no-daemon` | PASS. `BUILD SUCCESSFUL`; задачи `test`, `check`, `verify` выполнены без ошибок. |
+| `npm run lint` | PASS с предупреждениями. Ошибок нет; ESLint вывел 2 существующих предупреждения `react-refresh/only-export-components` в `LocalizationProvider.tsx`. |
+| `npm run test` | PASS. `13` test files и `57` tests passed. |
+| `npm run build` | PASS. TypeScript и Vite production build завершились успешно; есть предупреждения Rollup о комментариях в `zod` и размере основного bundle `504.86 kB`. |
+| Повторный расширенный Playwright browser flow после `docker compose down && docker compose up --build --detach --wait` | PASS. `RETEST_UI_CASES_PASSED`; повторно проверены TC-01--TC-12. Новых дефектов не обнаружено. |
+| `docker compose down && docker compose up --build --detach --wait` | PASS. Backend, frontend и PostgreSQL пересобраны и запущены; все контейнеры имеют статус `healthy`. |
+| `$env:PLAYWRIGHT_EXECUTABLE_PATH = 'C:\Program Files\Google\Chrome\Application\chrome.exe'; npm run test:e2e` | PASS. `2 passed (8.6s)`; browser flow повторно выполнил TC-01--TC-14, включая CRUD категорий и операций, фильтры, бюджеты, recurring rule, audit log, CSV и dashboard. |
+| `npm run lint` | PASS с предупреждениями. Ошибок нет; 2 существующих предупреждения `react-refresh/only-export-components` в `LocalizationProvider.tsx`. |
+| `npm run test` | PASS. `15` test files и `64` tests passed. |
+| `npm run build` | PASS. TypeScript и Vite production build завершились успешно; сохранены предупреждения Rollup о комментариях в `zod` и размере bundle. |
+
+## Итог
+
+Повторно проверены все 14 функциональных тест-кейсов: 14 PASS. Для устойчивости browser-проверки E2E сценарий адаптирован к локализованному календарю и текущим доступным именам UI-элементов. Функциональных дефектов не обнаружено. Compose-стенд оставлен запущенным.

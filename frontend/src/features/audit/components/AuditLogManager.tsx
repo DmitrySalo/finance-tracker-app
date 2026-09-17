@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import type { AuditEntityType, AuditLog } from "../../../shared/api/models";
 import { useLocalization } from "../../../shared/localization/LocalizationProvider";
+import { formatDecimal } from "../../../shared/formatters/formatDecimal";
 import { auditLogQueryKey, listAuditLogs } from "../api/auditApi";
 import styles from "./AuditLogManager.module.css";
 
@@ -23,9 +24,14 @@ function auditFieldLabel(field: string, l: (english: string, russian: string) =>
   return label === undefined ? field : l(...label);
 }
 
+function stateValue(field: string, value: string | null): string | null {
+  if (value === null || !["amount", "limitAmount"].includes(field)) return value;
+  return formatDecimal(value);
+}
+
 function State({ label, state }: { label: string; state: AuditLog["beforeState"] }) {
   const { l } = useLocalization();
-  return <section className={styles.state}><h3>{label}</h3>{state === null ? <p>{l("Not available", "Недоступно")}</p> : <dl>{Object.entries(state).map(([key, value]) => <div key={key}><dt>{auditFieldLabel(key, l)}</dt><dd>{value ?? l("Not set", "Не задано")}</dd></div>)}</dl>}</section>;
+  return <section className={styles.state}><h3>{label}</h3>{state === null ? <p>{l("Not available", "Недоступно")}</p> : <dl>{Object.entries(state).map(([key, value]) => <div key={key}><dt>{auditFieldLabel(key, l)}</dt><dd>{stateValue(key, value) ?? l("Not set", "Не задано")}</dd></div>)}</dl>}</section>;
 }
 
 export function AuditLogManager() {

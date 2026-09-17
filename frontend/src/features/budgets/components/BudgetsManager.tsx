@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import type { UseFormSetError } from "react-hook-form";
 import { z } from "zod";
 import { categoryQueryKey, listCategories } from "../../categories/api/categoriesApi";
@@ -10,8 +10,10 @@ import { ApiClientError } from "../../../shared/api/client";
 import type { Budget, Category } from "../../../shared/api/models";
 import { useNotifications } from "../../../shared/notifications/useNotifications";
 import { useLocalization } from "../../../shared/localization/LocalizationProvider";
+import { formatDecimal } from "../../../shared/formatters/formatDecimal";
 import { getCurrentUser } from "../../auth/api/authApi";
 import { budgetQueryKey, createBudget, deleteBudget, listAllBudgets, updateBudget } from "../api/budgetsApi";
+import { LocalizedDatePicker } from "../../../shared/ui/LocalizedDatePicker";
 import type { BudgetInput } from "../api/budgetsApi";
 import styles from "./BudgetsManager.module.css";
 
@@ -80,7 +82,7 @@ function BudgetForm({ budget, categories, categoriesFailed, defaultMonth, onCanc
     queryKey: ["current-user"],
     queryFn: ({ signal }) => getCurrentUser(signal),
   });
-  const { formState: { errors, isSubmitting }, handleSubmit, register, setError, setValue } = useForm<BudgetFormValues>({
+  const { control, formState: { errors, isSubmitting }, handleSubmit, register, setError, setValue } = useForm<BudgetFormValues>({
     defaultValues: budget === null ? { categoryId: "", budgetMonth: defaultMonth, limitAmount: "", currency: "" } : formValues(budget),
     resolver: zodResolver(budgetSchema(l)),
   });
@@ -113,7 +115,7 @@ function BudgetForm({ budget, categories, categoriesFailed, defaultMonth, onCanc
   return <form className={styles.form} noValidate onSubmit={handleSubmit(onSubmit)}>
     <h2>{budget === null ? l("New budget", "Новый бюджет") : l("Edit budget", "Изменить бюджет")}</h2>
     <div className={styles.field}><label htmlFor="budget-category">{l("Expense category", "Категория расходов")}</label><select aria-describedby={errors.categoryId ? "budget-category-error" : undefined} aria-invalid={Boolean(errors.categoryId)} id="budget-category" {...register("categoryId")}><option value="">{l("Select an expense category", "Выберите категорию расходов")}</option>{expenseCategories.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.name}</option>)}</select>{categoriesFailed && <p className={styles.fieldError} role="alert">{l("We could not load expense categories. Please try again.", "Не удалось загрузить категории расходов. Попробуйте снова.")}</p>}{errors.categoryId && <p className={styles.fieldError} id="budget-category-error" role="alert">{errors.categoryId.message}</p>}</div>
-    <Field error={errors.budgetMonth?.message} label={l("Month", "Месяц")} name="budgetMonth" register={register} type="month" />
+    <div className={styles.field}><label htmlFor="budget-budgetMonth">{l("Month", "Месяц")}</label><Controller control={control} name="budgetMonth" render={({ field }) => <LocalizedDatePicker aria-describedby={errors.budgetMonth ? "budget-budgetMonth-error" : undefined} aria-invalid={Boolean(errors.budgetMonth)} id="budget-budgetMonth" name={field.name} onBlur={field.onBlur} onChange={field.onChange} ref={field.ref} type="month" value={field.value} />} />{errors.budgetMonth && <p className={styles.fieldError} id="budget-budgetMonth-error" role="alert">{errors.budgetMonth.message}</p>}</div>
     <Field error={errors.limitAmount?.message} label={l("Limit amount", "Лимит")} name="limitAmount" register={register} type="text" />
     <Field error={errors.currency?.message} label={l("Currency", "Валюта")} name="currency" readOnly register={register} type="text" />
     {budget === null && currentUserQuery.isPending && <p role="status">{l("Loading your base currency…", "Загрузка основной валюты…")}</p>}
@@ -130,15 +132,19 @@ function Field({ error, label, name, readOnly = false, register, type }: { error
 
 function BudgetProgress({ budget }: { budget: Budget }) {
   const { l } = useLocalization();
+  const displayedPercentage = formatDecimal(budget.percentage);
+  const displayedSpentAmount = formatDecimal(budget.spentAmount);
+  const displayedLimitAmount = formatDecimal(budget.limitAmount);
+  const displayedRemainingAmount = formatDecimal(budget.remainingAmount);
   const percentage = Number(budget.percentage);
   const progress = Number.isFinite(percentage) ? Math.max(0, percentage) : 0;
   const displayedProgress = Math.min(progress, 100);
-  const accessibleText = l(`${budget.percentage}% of budget used. Spent ${budget.spentAmount} ${budget.currency} of ${budget.limitAmount} ${budget.currency}; ${budget.remainingAmount} ${budget.currency} remaining.`, `Использовано ${budget.percentage}% бюджета. Потрачено ${budget.spentAmount} ${budget.currency} из ${budget.limitAmount} ${budget.currency}; осталось ${budget.remainingAmount} ${budget.currency}.`);
+  const accessibleText = l(`${displayedPercentage}% of budget used. Spent ${displayedSpentAmount} ${budget.currency} of ${displayedLimitAmount} ${budget.currency}; ${displayedRemainingAmount} ${budget.currency} remaining.`, `Использовано ${displayedPercentage}% бюджета. Потрачено ${displayedSpentAmount} ${budget.currency} из ${displayedLimitAmount} ${budget.currency}; осталось ${displayedRemainingAmount} ${budget.currency}.`);
   const status = progress > 100 ? l("Over budget", "Бюджет превышен") : progress === 100 ? l("Budget reached", "Бюджет исчерпан") : l("Budget available", "Бюджет доступен");
 
   return <div className={styles.progressGroup}>
     <div aria-label={l("Budget progress", "Прогресс бюджета")} aria-valuemax={100} aria-valuemin={0} aria-valuenow={displayedProgress} aria-valuetext={accessibleText} className={styles.progress} role="progressbar"><span className={progress > 100 ? styles.progressFillOver : styles.progressFill} style={{ width: `${displayedProgress}%` }} /></div>
-    <p className={styles.values}>{l(`${budget.spentAmount} ${budget.currency} spent of ${budget.limitAmount} ${budget.currency} · ${budget.remainingAmount} ${budget.currency} remaining ·`, `${budget.spentAmount} ${budget.currency} из ${budget.limitAmount} ${budget.currency} потрачено · ${budget.remainingAmount} ${budget.currency} осталось ·`)} <strong>{status} ({budget.percentage}%)</strong></p>
+    <p className={styles.values}>{l(`${displayedSpentAmount} ${budget.currency} spent of ${displayedLimitAmount} ${budget.currency} · ${displayedRemainingAmount} ${budget.currency} remaining ·`, `${displayedSpentAmount} ${budget.currency} из ${displayedLimitAmount} ${budget.currency} потрачено · ${displayedRemainingAmount} ${budget.currency} осталось ·`)} <strong>{status} ({displayedPercentage}%)</strong></p>
   </div>;
 }
 
@@ -209,7 +215,7 @@ export function BudgetsManager() {
 
   return <section className={styles.page}>
     <header className={styles.header}><div><h1>{l("Budgets", "Бюджеты")}</h1><p>{l("Set monthly spending limits for your expense categories.", "Устанавливайте месячные лимиты расходов по категориям.")}</p></div><button className={styles.primaryButton} onClick={() => setEditedBudget(null)} ref={addButton} type="button">{l("Add budget", "Добавить бюджет")}</button></header>
-    <div className={styles.monthPicker}><label htmlFor="budget-month-picker">{l("Month", "Месяц")}</label><input id="budget-month-picker" onChange={(event) => setSelectedMonth(event.target.value)} type="month" value={selectedMonth} /></div>
+    <div className={styles.monthPicker}><label htmlFor="budget-month-picker">{l("Month", "Месяц")}</label><LocalizedDatePicker id="budget-month-picker" onChange={setSelectedMonth} type="month" value={selectedMonth} /></div>
     {editedBudget !== undefined && <BudgetForm budget={editedBudget} categories={categoriesQuery.data ?? []} categoriesFailed={categoriesQuery.isError} defaultMonth={selectedMonth} key={editedBudget?.id ?? "new"} onCancel={() => setEditedBudget(undefined)} onSaved={() => setEditedBudget(undefined)} />}
     {budgetsQuery.isPending && <p role="status">{l("Loading budgets…", "Загрузка бюджетов…")}</p>}
     {budgetsQuery.isError && <p className={styles.formError} role="alert">{l("We could not load budgets. Please refresh the page.", "Не удалось загрузить бюджеты. Обновите страницу.")}</p>}

@@ -44,7 +44,7 @@ test("provides accessible zero-percent budget progress text", async () => {
 
   const progress = await screen.findByRole("progressbar", { name: "Budget progress" });
   expect(progress.getAttribute("aria-valuenow")).toBe("0");
-  expect(progress.getAttribute("aria-valuetext")).toBe("0.00% of budget used. Spent 0.0000 USD of 100.0000 USD; 100.0000 USD remaining.");
+  expect(progress.getAttribute("aria-valuetext")).toBe("0.00% of budget used. Spent 0.00 USD of 100.00 USD; 100.00 USD remaining.");
 });
 
 test("provides accessible one-hundred-percent budget progress text", async () => {
@@ -52,7 +52,7 @@ test("provides accessible one-hundred-percent budget progress text", async () =>
 
   const progress = await screen.findByRole("progressbar", { name: "Budget progress" });
   expect(progress.getAttribute("aria-valuenow")).toBe("100");
-  expect(progress.getAttribute("aria-valuetext")).toBe("100.00% of budget used. Spent 100.0000 USD of 100.0000 USD; 0.0000 USD remaining.");
+  expect(progress.getAttribute("aria-valuetext")).toBe("100.00% of budget used. Spent 100.00 USD of 100.00 USD; 0.00 USD remaining.");
 });
 
 test("caps visual progress while preserving accessible over-limit text", async () => {
@@ -60,7 +60,7 @@ test("caps visual progress while preserving accessible over-limit text", async (
 
   const progress = await screen.findByRole("progressbar", { name: "Budget progress" });
   expect(progress.getAttribute("aria-valuenow")).toBe("100");
-  expect(progress.getAttribute("aria-valuetext")).toBe("125.00% of budget used. Spent 125.0000 USD of 100.0000 USD; -25.0000 USD remaining.");
+  expect(progress.getAttribute("aria-valuetext")).toBe("125.00% of budget used. Spent 125.00 USD of 100.00 USD; -25.00 USD remaining.");
   expect(await screen.findByText("Over budget (125.00%)")).toBeTruthy();
 });
 

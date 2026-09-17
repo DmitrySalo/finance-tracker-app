@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import ru.otus.financetracker.support.PostgresIntegrationTestSupport;
 
 class SyntheticDemoDataMigrationTests extends PostgresIntegrationTestSupport {
@@ -34,11 +35,53 @@ class SyntheticDemoDataMigrationTests extends PostgresIntegrationTestSupport {
                 statement.execute("SET search_path TO " + schema);
 
                 assertThat(count(statement, "SELECT count(*) FROM users")).isEqualTo(2);
-                assertThat(count(statement, "SELECT count(*) FROM categories")).isEqualTo(12);
+                assertThat(count(statement, "SELECT count(*) FROM categories")).isEqualTo(18);
+                assertThat(count(statement, """
+                        SELECT count(*)
+                        FROM (
+                            SELECT user_id
+                            FROM categories
+                            WHERE user_id IN ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002')
+                            GROUP BY user_id
+                            HAVING count(*) = 9
+                               AND count(*) FILTER (WHERE transaction_type = 'INCOME') = 3
+                               AND count(*) FILTER (WHERE transaction_type = 'EXPENSE') = 6
+                        ) AS demo_user_categories
+                        """)).isEqualTo(2);
                 assertThat(count(statement, "SELECT count(*) FROM budgets")).isEqualTo(3);
                 assertThat(count(statement, "SELECT count(*) FROM transactions")).isGreaterThanOrEqualTo(200);
                 assertThat(count(statement, "SELECT count(DISTINCT date_trunc('month', transaction_date)) FROM transactions"))
                         .isEqualTo(6);
+                assertThat(count(statement, """
+                        SELECT count(*)
+                        FROM (
+                            SELECT user_id
+                            FROM (
+                                SELECT user_id,
+                                       month,
+                                       string_agg(category_id::text || ':' || total_amount::text, ',' ORDER BY category_id) AS composition
+                                FROM (
+                                    SELECT user_id, date_trunc('month', transaction_date) AS month, category_id, sum(amount) AS total_amount
+                                    FROM transactions
+                                    WHERE transaction_type = 'EXPENSE'
+                                    GROUP BY user_id, date_trunc('month', transaction_date), category_id
+                                ) AS category_totals
+                                GROUP BY user_id, month
+                            ) AS monthly_compositions
+                            GROUP BY user_id
+                            HAVING count(*) = 6
+                               AND count(DISTINCT composition) = 6
+                        ) AS varied_demo_compositions
+                        """)).isEqualTo(2);
+                assertThat(count(statement, """
+                        SELECT count(*)
+                        FROM transactions
+                        WHERE user_id IN ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002')
+                          AND description LIKE 'Synthetic demo transaction %'
+                          AND updated_at = TIMESTAMP WITH TIME ZONE '2026-03-01 00:00:00+00'
+                        """)).isEqualTo(216);
+                assertThat(demoAccountPasswordMatches(statement, "alex.demo@example.test")).isTrue();
+                assertThat(demoAccountPasswordMatches(statement, "sam.demo@example.test")).isTrue();
             }
         } finally {
             flyway.clean();
@@ -49,6 +92,15 @@ class SyntheticDemoDataMigrationTests extends PostgresIntegrationTestSupport {
         try (var resultSet = statement.executeQuery(query)) {
             resultSet.next();
             return resultSet.getInt(1);
+        }
+    }
+
+    private boolean demoAccountPasswordMatches(java.sql.Statement statement, String email) throws SQLException {
+        try (var resultSet = statement.executeQuery(
+                "SELECT password_hash FROM users WHERE email = '" + email + "'"
+        )) {
+            resultSet.next();
+            return new BCryptPasswordEncoder().matches("DemoPassword2026", resultSet.getString(1));
         }
     }
 }

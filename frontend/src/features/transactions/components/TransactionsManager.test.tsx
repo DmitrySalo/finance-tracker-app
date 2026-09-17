@@ -38,7 +38,8 @@ test("submits a new transaction form", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Add transaction" }));
   fireEvent.change(screen.getAllByLabelText("Category")[0], { target: { value: transaction.categoryId } });
   fireEvent.change(screen.getByLabelText("Amount"), { target: { value: "12.34" } });
-  fireEvent.change(screen.getByLabelText("Date"), { target: { value: "2026-09-17" } });
+  fireEvent.click(screen.getByLabelText("Date"));
+  fireEvent.click(screen.getByRole("button", { name: "January 17, 2026" }));
   fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Groceries" } });
   fireEvent.click(screen.getByRole("button", { name: "Save transaction" }));
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
@@ -47,7 +48,7 @@ test("submits a new transaction form", async () => {
     if (String(call[0]).endsWith("/transactions") && call[1]?.method === "POST") postCall = call as [RequestInfo | URL, RequestInit | undefined];
   }
   expect(postCall).toBeDefined();
-  expect(JSON.parse(String(postCall?.[1]?.body))).toEqual({ categoryId: transaction.categoryId, amount: "12.34", currency: "USD", exchangeRateToBase: "1", transactionDate: "2026-09-17", description: "Groceries", transactionType: "EXPENSE" });
+  expect(JSON.parse(String(postCall?.[1]?.body))).toEqual({ categoryId: transaction.categoryId, amount: "12.34", currency: "USD", exchangeRateToBase: "1", transactionDate: "2026-01-17", description: "Groceries", transactionType: "EXPENSE" });
 });
 
 test("uses card layout for small screens", async () => {
@@ -55,5 +56,6 @@ test("uses card layout for small screens", async () => {
   mockFetch([response(page([transaction]))]);
   renderTransactions();
   expect(await screen.findByRole("list", { name: "Transaction cards" })).toBeTruthy();
+  expect(screen.getByText("12.34 USD")).toBeTruthy();
   expect(screen.queryByRole("table")).toBeNull();
 });

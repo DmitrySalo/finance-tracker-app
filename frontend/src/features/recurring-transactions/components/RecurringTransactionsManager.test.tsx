@@ -14,6 +14,7 @@ afterEach(() => vi.restoreAllMocks());
 test("pauses and activates a recurring rule", async () => {
   const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((_input, init) => init?.method === "PATCH" ? Promise.resolve(response({ ...rule, active: false, version: 5 })) : Promise.resolve(response({ items: [rule], page: { number: 0, size: 20, totalElements: 1, totalPages: 1 } })));
   renderManager();
+  expect(await screen.findByText("1200.00 USD · Expense")).toBeTruthy();
   fireEvent.click(await screen.findByRole("button", { name: "Pause rule" }));
   await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "PATCH" && String(init.body).includes('"active":false'))).toBe(true));
   await waitFor(() => expect(screen.getByText("Recurring rule paused.")).toBeTruthy());
@@ -23,7 +24,7 @@ test("submits all recurring rule form fields", async () => {
   const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => String(input).includes("/categories") ? Promise.resolve(response({ items: [category], page: { number: 0, size: 100, totalElements: 1, totalPages: 1 } })) : init?.method === "POST" ? Promise.resolve(response(rule)) : Promise.resolve(response({ items: [], page: { number: 0, size: 20, totalElements: 0, totalPages: 0 } })));
   renderManager(); await screen.findByText("No recurring rules yet. Add one to schedule future transactions."); fireEvent.click(screen.getByRole("button", { name: "Add recurring rule" }));
   await screen.findByRole("option", { name: "H Rent" }); const categoryField = await screen.findByLabelText<HTMLSelectElement>("Category");
-  fireEvent.change(categoryField, { target: { value: category.id } }); fireEvent.change(screen.getByLabelText("Amount"), { target: { value: "25" } }); fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-10-01" } }); fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Subscription" } }); fireEvent.click(screen.getByRole("button", { name: "Save rule" }));
+  fireEvent.change(categoryField, { target: { value: category.id } }); fireEvent.change(screen.getByLabelText("Amount"), { target: { value: "25" } }); fireEvent.click(screen.getByLabelText("Start date")); fireEvent.click(screen.getByRole("button", { name: "Next month" })); fireEvent.click(screen.getByRole("button", { name: "February 1, 2026" })); fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Subscription" } }); fireEvent.click(screen.getByRole("button", { name: "Save rule" }));
   await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(true));
-  const create = fetchMock.mock.calls.find(([, init]) => init?.method === "POST"); expect(JSON.parse(String(create?.[1]?.body))).toMatchObject({ categoryId: category.id, amount: "25", startDate: "2026-10-01", description: "Subscription", active: true });
+  const create = fetchMock.mock.calls.find(([, init]) => init?.method === "POST"); expect(JSON.parse(String(create?.[1]?.body))).toMatchObject({ categoryId: category.id, amount: "25", startDate: "2026-02-01", description: "Subscription", active: true });
 });
