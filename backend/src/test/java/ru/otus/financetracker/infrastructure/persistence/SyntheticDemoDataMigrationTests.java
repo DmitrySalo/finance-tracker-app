@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import ru.otus.financetracker.support.PostgresIntegrationTestSupport;
 
 class SyntheticDemoDataMigrationTests extends PostgresIntegrationTestSupport {
@@ -39,6 +40,8 @@ class SyntheticDemoDataMigrationTests extends PostgresIntegrationTestSupport {
                 assertThat(count(statement, "SELECT count(*) FROM transactions")).isGreaterThanOrEqualTo(200);
                 assertThat(count(statement, "SELECT count(DISTINCT date_trunc('month', transaction_date)) FROM transactions"))
                         .isEqualTo(6);
+                assertThat(demoAccountPasswordMatches(statement, "alex.demo@example.test")).isTrue();
+                assertThat(demoAccountPasswordMatches(statement, "sam.demo@example.test")).isTrue();
             }
         } finally {
             flyway.clean();
@@ -49,6 +52,15 @@ class SyntheticDemoDataMigrationTests extends PostgresIntegrationTestSupport {
         try (var resultSet = statement.executeQuery(query)) {
             resultSet.next();
             return resultSet.getInt(1);
+        }
+    }
+
+    private boolean demoAccountPasswordMatches(java.sql.Statement statement, String email) throws SQLException {
+        try (var resultSet = statement.executeQuery(
+                "SELECT password_hash FROM users WHERE email = '" + email + "'"
+        )) {
+            resultSet.next();
+            return new BCryptPasswordEncoder().matches("DemoPassword2026", resultSet.getString(1));
         }
     }
 }

@@ -61,7 +61,30 @@ Vite serves the SPA at `http://localhost:5173` and proxies `/api` to the backend
 
 ## Demo Data And API Documentation
 
-The `dev` profile loads deterministic synthetic data for the fictitious users `alex.demo@example.test` and `sam.demo@example.test`: 12 categories, 3 budgets, and 216 transactions from March through August 2026. The seed data has no published usable credentials. Register a local account to sign in and create new data.
+Docker Compose always starts the backend with the `dev` profile. This profile loads deterministic synthetic data: two users, 12 categories, three budgets, and 216 transactions from March through August 2026. All data and accounts are fictional and intended only for a local demonstration.
+
+To recreate the database and load the complete seed data, run:
+
+```shell
+docker compose down --volumes
+docker compose up --build --detach --wait
+```
+
+`docker compose down --volumes` deletes the local PostgreSQL volume of this Compose project. Do not use it if you need to keep locally entered data. Open `http://localhost:8080`, select **Log in**, and use either demonstration account:
+
+| Email | Password | Data available |
+|---|---|---|
+| `alex.demo@example.test` | `DemoPassword2026` | 6 categories, 2 budgets, 108 transactions |
+| `sam.demo@example.test` | `DemoPassword2026` | 6 categories, 1 budget, 108 transactions |
+
+The accounts are isolated from each other. Sign in as each user to verify that transactions, budgets, dashboard data, CSV export/import, recurring transactions, and audit logs are scoped to the current account.
+
+You can confirm that the seed migration completed without exposing password hashes:
+
+```shell
+docker compose exec postgres psql -U finance_tracker_app -d finance_tracker -c "SELECT email, display_name FROM users ORDER BY email;"
+docker compose exec postgres psql -U finance_tracker_app -d finance_tracker -c "SELECT COUNT(*) AS transaction_count FROM transactions;"
+```
 
 With the `dev` profile active, Swagger UI is available at `http://localhost:8080/swagger-ui/index.html`, and the OpenAPI document is at `http://localhost:8080/v3/api-docs`.
 
@@ -153,19 +176,28 @@ Vite запускает SPA по адресу `http://localhost:5173` и про�
 
 ## Демонстрационные Данные И Документация API
 
-Профиль `dev` загружает детерминированные синтетические данные для фиктивных пользователей `alex.demo@example.test` и `sam.demo@example.test`: 12 категорий, 3 бюджета и 216 транзакций с марта по август 2026 года. Seed-данные не содержат опубликованных действующих учётных данных. Зарегистрируйте локального пользователя, чтобы войти в интерфейс и создать собственные данные.
+Docker Compose всегда запускает backend с профилем `dev`. Этот профиль загружает детерминированные синтетические данные: двух пользователей, 12 категорий, три бюджета и 216 транзакций с марта по август 2026 года. Все данные и учётные записи фиктивны и предназначены только для локальной демонстрации.
 
-Для демонстрационного запуска с seed-данными используйте чистый Docker volume. Команда удаляет только локальные данные этого Compose-проекта, затем создаёт БД заново и запускает профиль `dev`:
+Чтобы пересоздать БД и загрузить полный набор seed-данных, выполните:
 
 ```shell
 docker compose down --volumes
 docker compose up --build --detach --wait
 ```
 
-Проверьте создание seed-данных через PostgreSQL:
+`docker compose down --volumes` удаляет локальный PostgreSQL volume этого Compose-проекта. Не используйте команду, если необходимо сохранить внесённые локально данные. Откройте `http://localhost:8080`, выберите **Войти** и используйте одну из демонстрационных учётных записей:
+
+| Email | Пароль | Доступные данные |
+|---|---|---|
+| `alex.demo@example.test` | `DemoPassword2026` | 6 категорий, 2 бюджета, 108 транзакций |
+| `sam.demo@example.test` | `DemoPassword2026` | 6 категорий, 1 бюджет, 108 транзакций |
+
+Данные аккаунтов изолированы друг от друга. Войдите под каждым пользователем, чтобы проверить, что транзакции, бюджеты, данные dashboard, экспорт/импорт CSV, повторяющиеся операции и аудит ограничены текущей учётной записью.
+
+Создание seed-данных можно проверить через PostgreSQL, не выводя password hash:
 
 ```shell
-docker compose exec postgres psql -U finance_tracker_app -d finance_tracker -c "SELECT email FROM users ORDER BY email;"
+docker compose exec postgres psql -U finance_tracker_app -d finance_tracker -c "SELECT email, display_name FROM users ORDER BY email;"
 docker compose exec postgres psql -U finance_tracker_app -d finance_tracker -c "SELECT COUNT(*) AS transaction_count FROM transactions;"
 ```
 
