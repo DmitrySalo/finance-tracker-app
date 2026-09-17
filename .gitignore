@@ -21,6 +21,7 @@ Thumbs.db
 
 ### Environment ###
 .env
+!/.env.example
 
 ### Frontend ###
 frontend/node_modules/

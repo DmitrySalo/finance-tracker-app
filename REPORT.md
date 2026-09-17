@@ -260,3 +260,10 @@
 [Промт.](promts/implement-recurring-rules-and-audit-ui.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 37
+Контейнеризировать приложение.
+
+[Промт.](promts/containerize-application.md)
+
+Данная запись сгенерирована агентом.
