@@ -61,7 +61,7 @@ Vite serves the SPA at `http://localhost:5173` and proxies `/api` to the backend
 
 ## Demo Data And API Documentation
 
-Docker Compose always starts the backend with the `dev` profile. This profile loads deterministic synthetic data: two users, 12 categories, three budgets, and 216 transactions from March through August 2026. All data and accounts are fictional and intended only for a local demonstration.
+Docker Compose always starts the backend with the `dev` profile. This profile loads deterministic synthetic data: two users, 18 categories, three budgets, and 216 transactions from March through August 2026. All data and accounts are fictional and intended only for a local demonstration.
 
 To recreate the database and load the complete seed data, run:
 
@@ -74,8 +74,8 @@ docker compose up --build --detach --wait
 
 | Email | Password | Data available |
 |---|---|---|
-| `alex.demo@example.test` | `DemoPassword2026` | 6 categories, 2 budgets, 108 transactions |
-| `sam.demo@example.test` | `DemoPassword2026` | 6 categories, 1 budget, 108 transactions |
+| `alex.demo@example.test` | `DemoPassword2026` | 9 categories, 2 budgets, 108 transactions |
+| `sam.demo@example.test` | `DemoPassword2026` | 9 categories, 1 budget, 108 transactions |
 
 The accounts are isolated from each other. Sign in as each user to verify that transactions, budgets, dashboard data, CSV export/import, recurring transactions, and audit logs are scoped to the current account.
 
@@ -176,7 +176,7 @@ Vite запускает SPA по адресу `http://localhost:5173` и про�
 
 ## Демонстрационные Данные И Документация API
 
-Docker Compose всегда запускает backend с профилем `dev`. Этот профиль загружает детерминированные синтетические данные: двух пользователей, 12 категорий, три бюджета и 216 транзакций с марта по август 2026 года. Все данные и учётные записи фиктивны и предназначены только для локальной демонстрации.
+Docker Compose всегда запускает backend с профилем `dev`. Этот профиль загружает детерминированные синтетические данные: двух пользователей, 18 категорий, три бюджета и 216 транзакций с марта по август 2026 года. Все данные и учётные записи фиктивны и предназначены только для локальной демонстрации.
 
 Чтобы пересоздать БД и загрузить полный набор seed-данных, выполните:
 
@@ -189,8 +189,8 @@ docker compose up --build --detach --wait
 
 | Email | Пароль | Доступные данные |
 |---|---|---|
-| `alex.demo@example.test` | `DemoPassword2026` | 6 категорий, 2 бюджета, 108 транзакций |
-| `sam.demo@example.test` | `DemoPassword2026` | 6 категорий, 1 бюджет, 108 транзакций |
+| `alex.demo@example.test` | `DemoPassword2026` | 9 категорий, 2 бюджета, 108 транзакций |
+| `sam.demo@example.test` | `DemoPassword2026` | 9 категорий, 1 бюджет, 108 транзакций |
 
 Данные аккаунтов изолированы друг от друга. Войдите под каждым пользователем, чтобы проверить, что транзакции, бюджеты, данные dashboard, экспорт/импорт CSV, повторяющиеся операции и аудит ограничены текущей учётной записью.
 

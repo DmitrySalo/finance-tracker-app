@@ -24,7 +24,8 @@ test("requests the selected month for dashboard and spending trend", async () =>
   renderDashboard();
   vi.useRealTimers();
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-  fireEvent.change(screen.getByLabelText("Month"), { target: { value: "2026-09" } });
+  fireEvent.click(screen.getByLabelText("Month"));
+  fireEvent.click(screen.getByRole("button", { name: "Sep" }));
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
   expect(fetchMock.mock.calls.some(([input]) => String(input).includes("/dashboard?month=2026-09"))).toBe(true);
   expect(fetchMock.mock.calls.some(([input]) => String(input).includes("/dashboard/spending-trend?endMonth=2026-09"))).toBe(true);
@@ -63,6 +64,16 @@ test("provides accessible textual alternatives for both charts", async () => {
   renderDashboard();
   expect((await screen.findByRole("img", { name: /Expenses by category/ })).getAttribute("aria-label")).toContain("Groceries: 40.00");
   expect(screen.getByRole("img", { name: /Six-month spending trend/ }).getAttribute("aria-label")).toContain("2026-09-01: 60.00");
+});
+
+test("formats dashboard amounts with two fractional digits", async () => {
+  const preciseDashboard = { ...dashboard, expensesByCategory: [{ ...dashboard.expensesByCategory[0], amount: "40.000000000000" }] };
+  const preciseTrend = { ...trend, months: trend.months.map((entry) => ({ ...entry, amount: "60.000000000000" })) };
+  vi.spyOn(globalThis, "fetch").mockImplementation((input: RequestInfo | URL) => Promise.resolve(String(input).includes("spending-trend") ? response(preciseTrend) : response(preciseDashboard)));
+  renderDashboard();
+
+  expect(await screen.findByText("🛒 Groceries: 40.00")).toBeTruthy();
+  expect(screen.getAllByText("60.00")).toHaveLength(6);
 });
 
 test("shows loading and error states", async () => {

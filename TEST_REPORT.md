@@ -65,7 +65,12 @@ Frontend-набор Vitest покрывает:
 | `npm run test` | PASS. `13` test files и `57` tests passed. |
 | `npm run build` | PASS. TypeScript и Vite production build завершились успешно; есть предупреждения Rollup о комментариях в `zod` и размере основного bundle `504.86 kB`. |
 | Повторный расширенный Playwright browser flow после `docker compose down && docker compose up --build --detach --wait` | PASS. `RETEST_UI_CASES_PASSED`; повторно проверены TC-01--TC-12. Новых дефектов не обнаружено. |
+| `docker compose down && docker compose up --build --detach --wait` | PASS. Backend, frontend и PostgreSQL пересобраны и запущены; все контейнеры имеют статус `healthy`. |
+| `$env:PLAYWRIGHT_EXECUTABLE_PATH = 'C:\Program Files\Google\Chrome\Application\chrome.exe'; npm run test:e2e` | PASS. `2 passed (8.6s)`; browser flow повторно выполнил TC-01--TC-14, включая CRUD категорий и операций, фильтры, бюджеты, recurring rule, audit log, CSV и dashboard. |
+| `npm run lint` | PASS с предупреждениями. Ошибок нет; 2 существующих предупреждения `react-refresh/only-export-components` в `LocalizationProvider.tsx`. |
+| `npm run test` | PASS. `15` test files и `64` tests passed. |
+| `npm run build` | PASS. TypeScript и Vite production build завершились успешно; сохранены предупреждения Rollup о комментариях в `zod` и размере bundle. |
 
 ## Итог
 
-Повторно проверены все 14 функциональных тест-кейсов: 14 PASS. Дефекты не обнаружены. Compose-стенд оставлен запущенным.
+Повторно проверены все 14 функциональных тест-кейсов: 14 PASS. Для устойчивости browser-проверки E2E сценарий адаптирован к локализованному календарю и текущим доступным именам UI-элементов. Функциональных дефектов не обнаружено. Compose-стенд оставлен запущенным.

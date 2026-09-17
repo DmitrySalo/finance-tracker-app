@@ -1,13 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import type { UseFormSetError } from "react-hook-form";
 import { z } from "zod";
 import { ApiClientError } from "../../../shared/api/client";
 import type { Category, Transaction } from "../../../shared/api/models";
 import { useNotifications } from "../../../shared/notifications/useNotifications";
 import { useLocalization } from "../../../shared/localization/LocalizationProvider";
+import { formatDecimal } from "../../../shared/formatters/formatDecimal";
 import {
   createTransaction,
   deleteTransaction,
@@ -19,6 +20,7 @@ import type { TransactionFilters, TransactionInput, TransactionSort } from "../a
 import { categoryQueryKey, listCategories } from "../../categories/api/categoriesApi";
 import styles from "./TransactionsManager.module.css";
 import { TransactionsCsvManager } from "./TransactionsCsvManager";
+import { LocalizedDatePicker } from "../../../shared/ui/LocalizedDatePicker";
 
 function transactionSchema(l: (english: string, russian: string) => string) { return z.object({
   categoryId: z.string().uuid(l("Enter a valid category ID.", "Введите корректный идентификатор категории.")),
@@ -101,7 +103,7 @@ function TransactionForm({ transaction, onCancel, onSaved }: TransactionFormProp
     <FormField error={errors.amount?.message} label={l("Amount", "Сумма")} name="amount" register={register} type="text" />
     <FormField error={errors.currency?.message} label={l("Currency", "Валюта")} name="currency" register={register} type="text" />
     <FormField error={errors.exchangeRateToBase?.message} label={l("Exchange rate to base currency", "Курс к основной валюте")} name="exchangeRateToBase" register={register} type="text" />
-    <FormField error={errors.transactionDate?.message} label={l("Date", "Дата")} name="transactionDate" register={register} type="date" />
+    <div className={styles.field}><label htmlFor="transaction-transactionDate">{l("Date", "Дата")}</label><Controller control={control} name="transactionDate" render={({ field }) => <LocalizedDatePicker aria-describedby={errors.transactionDate ? "transaction-transactionDate-error" : undefined} aria-invalid={Boolean(errors.transactionDate)} id="transaction-transactionDate" name={field.name} onBlur={field.onBlur} onChange={field.onChange} ref={field.ref} type="date" value={field.value} />} />{errors.transactionDate && <p className={styles.fieldError} id="transaction-transactionDate-error" role="alert">{errors.transactionDate.message}</p>}</div>
     <div className={styles.field}><label htmlFor="transaction-type">{l("Type", "Тип")}</label><select id="transaction-type" {...register("transactionType")}><option value="EXPENSE">{l("Expense", "Расход")}</option><option value="INCOME">{l("Income", "Доход")}</option></select></div>
     <FormField error={errors.description?.message} label={l("Description", "Описание")} name="description" register={register} type="text" />
     {mutation.isError && !(mutation.error instanceof ApiClientError && mutation.error.apiError.code === "VALIDATION_FAILED") && <p className={styles.formError} role="alert">{l("We could not save the transaction. Please try again.", "Не удалось сохранить операцию. Попробуйте снова.")}</p>}
@@ -169,8 +171,8 @@ function TransactionRows({ transactions, onEdit, onDelete }: TransactionRowsProp
     return <div className={styles.rowActions}><button onClick={() => onEdit(transaction)} type="button">{l("Edit transaction", "Изменить операцию")}</button><button onClick={() => onDelete(transaction)} type="button">{l("Delete transaction", "Удалить операцию")}</button></div>;
   }
 
-  if (isMobileLayout) return <ul aria-label={l("Transaction cards", "Карточки операций")} className={styles.cards}>{transactions.map((transaction) => <li className={styles.card} key={transaction.id}><div className={styles.cardHeader}><strong>{transaction.amount} {transaction.currency}</strong><span>{transaction.transactionDate}</span></div><p className={styles.cardDetails}>{transaction.transactionType === "EXPENSE" ? l("Expense", "Расход") : l("Income", "Доход")} · {transaction.categoryId}</p>{transaction.description && <p className={styles.cardDetails}>{transaction.description}</p>}{actions(transaction)}</li>)}</ul>;
-  return <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>{l("Date", "Дата")}</th><th>{l("Type", "Тип")}</th><th>{l("Amount", "Сумма")}</th><th>{l("Category", "Категория")}</th><th>{l("Description", "Описание")}</th><th>{l("Actions", "Действия")}</th></tr></thead><tbody>{transactions.map((transaction) => <tr key={transaction.id}><td>{transaction.transactionDate}</td><td>{transaction.transactionType === "EXPENSE" ? l("Expense", "Расход") : l("Income", "Доход")}</td><td>{transaction.amount} {transaction.currency}</td><td>{transaction.categoryId}</td><td>{transaction.description ?? "—"}</td><td>{actions(transaction)}</td></tr>)}</tbody></table></div>;
+  if (isMobileLayout) return <ul aria-label={l("Transaction cards", "Карточки операций")} className={styles.cards}>{transactions.map((transaction) => <li className={styles.card} key={transaction.id}><div className={styles.cardHeader}><strong>{formatDecimal(transaction.amount)} {transaction.currency}</strong><span>{transaction.transactionDate}</span></div><p className={styles.cardDetails}>{transaction.transactionType === "EXPENSE" ? l("Expense", "Расход") : l("Income", "Доход")} · {transaction.categoryId}</p>{transaction.description && <p className={styles.cardDetails}>{transaction.description}</p>}{actions(transaction)}</li>)}</ul>;
+  return <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>{l("Date", "Дата")}</th><th>{l("Type", "Тип")}</th><th>{l("Amount", "Сумма")}</th><th>{l("Category", "Категория")}</th><th>{l("Description", "Описание")}</th><th>{l("Actions", "Действия")}</th></tr></thead><tbody>{transactions.map((transaction) => <tr key={transaction.id}><td>{transaction.transactionDate}</td><td>{transaction.transactionType === "EXPENSE" ? l("Expense", "Расход") : l("Income", "Доход")}</td><td>{formatDecimal(transaction.amount)} {transaction.currency}</td><td>{transaction.categoryId}</td><td>{transaction.description ?? "—"}</td><td>{actions(transaction)}</td></tr>)}</tbody></table></div>;
 }
 
 export function TransactionsManager() {
@@ -193,8 +195,8 @@ export function TransactionsManager() {
     <header className={styles.header}><div><h1>{l("Transactions", "Операции")}</h1><p>{l("Review, filter, and manage your income and expenses.", "Просматривайте, фильтруйте и управляйте доходами и расходами.")}</p></div><div className={styles.headerActions}><button className={styles.secondaryButton} onClick={() => { setDraftFilters(initialFilters); setFilters(initialFilters); setPage(0); }} type="button">{l("Reset filters", "Сбросить фильтры")}</button><button className={styles.primaryButton} onClick={() => setEditedTransaction(null)} type="button">{l("Add transaction", "Добавить операцию")}</button></div></header>
     {editedTransaction !== undefined && <TransactionForm key={editedTransaction?.id ?? "new"} onCancel={() => setEditedTransaction(undefined)} onSaved={() => setEditedTransaction(undefined)} transaction={editedTransaction} />}
     <form className={styles.filterPanel} onSubmit={(event) => { event.preventDefault(); setFilters(draftFilters); setPage(0); }}><h2>{l("Filters", "Фильтры")}</h2><div className={styles.filters}>
-      <FilterField label={l("From date", "С даты")} name="fromDate" onChange={changeFilter} type="date" value={draftFilters.fromDate} />
-      <FilterField label={l("To date", "По дату")} name="toDate" onChange={changeFilter} type="date" value={draftFilters.toDate} />
+      <DateFilterField label={l("From date", "С даты")} name="fromDate" onChange={changeFilter} value={draftFilters.fromDate} />
+      <DateFilterField label={l("To date", "По дату")} name="toDate" onChange={changeFilter} value={draftFilters.toDate} />
       <div className={styles.field}><label htmlFor="filter-category">{l("Category", "Категория")}</label><select id="filter-category" onChange={(event) => changeFilter("categoryId", event.target.value)} value={draftFilters.categoryId}><option value="">{l("All categories", "Все категории")}</option>{categoriesQuery.data?.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.name}</option>)}</select></div>
       <FilterField label={l("Minimum amount", "Минимальная сумма")} name="minAmount" onChange={changeFilter} type="text" value={draftFilters.minAmount} />
       <FilterField label={l("Maximum amount", "Максимальная сумма")} name="maxAmount" onChange={changeFilter} type="text" value={draftFilters.maxAmount} />
@@ -214,4 +216,9 @@ export function TransactionsManager() {
 function FilterField({ label, name, onChange, type, value }: { label: string; name: "fromDate" | "toDate" | "categoryId" | "minAmount" | "maxAmount"; onChange: (name: keyof TransactionFilters, value: string) => void; type: string; value: string }) {
   const id = `filter-${name}`;
   return <div className={styles.field}><label htmlFor={id}>{label}</label><input id={id} onChange={(event) => onChange(name, event.target.value)} type={type} value={value} /></div>;
+}
+
+function DateFilterField({ label, name, onChange, value }: { label: string; name: "fromDate" | "toDate"; onChange: (name: keyof TransactionFilters, value: string) => void; value: string }) {
+  const id = `filter-${name}`;
+  return <div className={styles.field}><label htmlFor={id}>{label}</label><LocalizedDatePicker id={id} onChange={(date) => onChange(name, date)} type="date" value={value} /></div>;
 }

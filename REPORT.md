@@ -317,3 +317,9 @@
 [Промт.](promts/document-demo-mode-accounts.md)
 
 Данная запись сгенерирована агентом.
+
+### Шаг 45
+Мелкие доработки UI.
+Добавление новых seed-данных.
+
+[Промт.](promts/add-ui-changes-and-new-seed-data.md)

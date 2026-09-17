@@ -1,0 +1,14 @@
+.picker { position: relative; }
+.inputRow { display: flex; gap: 0.25rem; }
+.trigger { width: 100%; text-align: left; }
+.clear { flex: 0 0 auto; }
+.dialog { background: var(--color-surface, white); border: 1px solid var(--color-border, #cbd5e1); border-radius: 0.5rem; box-shadow: 0 0.5rem 1.5rem rgb(15 23 42 / 20%); color: inherit; left: 0; min-width: 17rem; padding: 0.75rem; position: absolute; top: calc(100% + 0.25rem); z-index: 10; }
+.header { align-items: center; display: flex; gap: 0.5rem; justify-content: space-between; margin-bottom: 0.5rem; }
+.header button { min-width: 2rem; }
+.title { font-weight: 700; margin: 0; text-align: center; }
+.weekdays, .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.125rem; }
+.weekdays span { font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0; text-align: center; }
+.days button, .months button { border: 0; border-radius: 0.25rem; color: inherit; font: inherit; min-height: 2rem; padding: 0.25rem; }
+.days button:hover, .months button:hover { background: var(--color-muted, #e2e8f0); }
+.selected { background: var(--color-primary, #2457d6) !important; color: white !important; }
+.months { display: grid; gap: 0.25rem; grid-template-columns: repeat(3, 1fr); }
