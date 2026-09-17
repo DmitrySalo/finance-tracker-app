@@ -10,12 +10,14 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.util.unit.DataSize;
 import ru.otus.financetracker.configuration.ApplicationProperties;
 
 class AuthenticationRateLimiterTests {
 
     @Test
+    @DisplayName("Ограничитель допускает новую аутентификацию после завершения окна")
     void shouldAllowNewAuthenticationAfterWindowExpiresAtCapacity() {
         Instant initialTime = Instant.parse("2026-09-16T12:00:00Z");
         var clock = new MutableClock(initialTime);
@@ -32,6 +34,7 @@ class AuthenticationRateLimiterTests {
     }
 
     @Test
+    @DisplayName("Ограничитель отклоняет аутентификацию после максимального числа попыток")
     void shouldRejectAuthenticationAfterMaximumAttempts() {
         var limiter = new AuthenticationRateLimiter(
             Clock.fixed(Instant.parse("2026-09-16T12:00:00Z"), ZoneOffset.UTC),

@@ -9,10 +9,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Instant;
 import java.util.List;
 
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -20,34 +19,12 @@ import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
+import ru.otus.financetracker.support.PostgresIntegrationTestSupport;
 
 
-@SpringBootTest(properties = {
-        "JWT_ISSUER=https://issuer.test",
-        "JWT_AUDIENCE=finance-tracker-test",
-        "JWT_SECRET=test-signing-secret-with-at-least-32-characters",
-        "CORS_ALLOWED_ORIGINS=https://frontend.test",
-        "MAX_REQUEST_SIZE=1MB",
-        "MAX_CSV_FILE_SIZE=512KB",
-        "MAX_CSV_ROWS=100",
-        "MAX_REQUEST_HEADER_SIZE=8KB",
-        "REGISTRATION_MAX_ATTEMPTS=100"
-})
 @AutoConfigureMockMvc
-@Testcontainers
-class AuthControllerIntegrationTests {
-
-    @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
-            DockerImageName.parse("postgres:18-alpine")
-    );
+class AuthControllerIntegrationTests extends PostgresIntegrationTestSupport {
 
     @Autowired
     private MockMvc mockMvc;
@@ -58,19 +35,8 @@ class AuthControllerIntegrationTests {
     @Autowired
     private JwtEncoder jwtEncoder;
 
-    @DynamicPropertySource
-    static void configureDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
-
-    @AfterEach
-    void clearUsers() {
-        jdbcTemplate.update("DELETE FROM users");
-    }
-
     @Test
+    @DisplayName("Регистрация пользователя сохраняет пароль в виде bcrypt-хеша")
     void shouldRegisterUserAndStoreBcryptHash() throws Exception {
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType("application/json")
@@ -93,6 +59,7 @@ class AuthControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Регистрация отклоняет пароль, не соответствующий требованиям")
     void shouldRejectInvalidPassword() throws Exception {
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType("application/json")
@@ -105,6 +72,7 @@ class AuthControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Повторная регистрация с тем же email возвращает успешный статус без дубликата")
     void shouldReturnSameSuccessfulStatusForDuplicateEmail() throws Exception {
         var request = """
                 {"email":"person@example.test","password":"a-secure-password","displayName":"Test User","baseCurrency":"USD"}
@@ -123,6 +91,7 @@ class AuthControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Вход выдает JWT и возвращает данные текущего пользователя")
     void shouldIssueJwtAndReturnCurrentUser() throws Exception {
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType("application/json")
@@ -154,6 +123,7 @@ class AuthControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Защищенный профиль недоступен без JWT")
     void shouldRejectProtectedEndpointWithoutJwt() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me"))
                 .andExpect(status().isUnauthorized())
@@ -161,6 +131,7 @@ class AuthControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Вход с неверными учетными данными не раскрывает существование пользователя")
     void shouldRejectLoginWithInvalidCredentialsWithoutDisclosingAccount() throws Exception {
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType("application/json")
@@ -173,6 +144,7 @@ class AuthControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("JWT с другой аудиторией отклоняется")
     void shouldRejectJwtWithUnexpectedAudience() throws Exception {
         String token = signedJwt("another-audience", Instant.parse("2099-01-01T00:00:00Z"));
 
@@ -183,6 +155,7 @@ class AuthControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("JWT с другим издателем отклоняется")
     void shouldRejectJwtWithUnexpectedIssuer() throws Exception {
         String token = signedJwt(
             "https://another-issuer.test",
@@ -197,6 +170,7 @@ class AuthControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Просроченный JWT отклоняется")
     void shouldRejectExpiredJwt() throws Exception {
         String token = signedJwt("finance-tracker-test", Instant.parse("2020-01-01T00:00:00Z"));
 
@@ -207,6 +181,7 @@ class AuthControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("JWT с недействительной подписью отклоняется")
     void shouldRejectJwtWithInvalidSignature() throws Exception {
         String signedToken = signedJwt("finance-tracker-test", Instant.parse("2099-01-01T00:00:00Z"));
         int signatureStart = signedToken.lastIndexOf('.') + 1;
@@ -220,6 +195,7 @@ class AuthControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Вход отклоняет пароль длиннее ограничения bcrypt")
     void shouldRejectPasswordExceedingBcryptByteLimit() throws Exception {
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType("application/json")

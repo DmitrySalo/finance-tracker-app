@@ -6,12 +6,14 @@ import java.io.PushbackReader;
 import java.io.StringReader;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 
 class CsvRecordReaderTests {
 
     private final CsvRecordReader reader = new CsvRecordReader();
 
     @Test
+    @DisplayName("CSV-парсер обрабатывает запятые, кавычки и переводы строк в значениях")
     void shouldParseQuotedCommasEscapedQuotesAndEmbeddedNewlines() throws Exception {
         var input = new PushbackReader(
                 new StringReader("name,note\r\nDinner,\"first line\r\nsecond \"\"quoted\"\" line\"\r\n"),

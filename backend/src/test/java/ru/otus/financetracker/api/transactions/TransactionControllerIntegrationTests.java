@@ -11,41 +11,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
+import ru.otus.financetracker.support.PostgresIntegrationTestSupport;
 
-@SpringBootTest(properties = {
-        "JWT_ISSUER=https://issuer.test",
-        "JWT_AUDIENCE=finance-tracker-test",
-        "JWT_SECRET=test-signing-secret-with-at-least-32-characters",
-        "CORS_ALLOWED_ORIGINS=https://frontend.test",
-        "MAX_REQUEST_SIZE=1MB",
-        "MAX_CSV_FILE_SIZE=512KB",
-        "MAX_CSV_ROWS=101",
-        "MAX_REQUEST_HEADER_SIZE=8KB",
-        "REGISTRATION_MAX_ATTEMPTS=100"
-})
+@TestPropertySource(properties = "MAX_CSV_ROWS=101")
 @AutoConfigureMockMvc
-@Testcontainers
-class TransactionControllerIntegrationTests {
-
-    @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
-            DockerImageName.parse("postgres:18-alpine")
-    );
+class TransactionControllerIntegrationTests extends PostgresIntegrationTestSupport {
 
     @Autowired
     private MockMvc mockMvc;
@@ -53,25 +31,8 @@ class TransactionControllerIntegrationTests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    private TransactionTemplate transactionTemplate;
-
-    @DynamicPropertySource
-    static void configureDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
-
-    @AfterEach
-    void clearData() {
-        transactionTemplate.executeWithoutResult(status -> {
-            jdbcTemplate.execute("SET LOCAL session_replication_role = replica");
-            jdbcTemplate.execute("TRUNCATE TABLE audit_logs, transactions, categories, users CASCADE");
-        });
-    }
-
     @Test
+    @DisplayName("Создание и чтение операции сохраняют курс конвертации")
     void shouldCreateAndGetTransactionWithPersistedExchangeRate() throws Exception {
         String token = registerAndLogin("owner@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -98,6 +59,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Операция отклоняет чужую или несовместимую категорию и скрыта от другого пользователя")
     void shouldRejectMismatchedAndForeignCategoriesAndHideAnotherUsersTransaction() throws Exception {
         String ownerToken = registerAndLogin("owner@example.test");
         String otherToken = registerAndLogin("other@example.test");
@@ -132,6 +94,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Владелец изменяет операцию с категорией соответствующего типа")
     void shouldUpdateTransactionWithOwnedMatchingCategory() throws Exception {
         String token = registerAndLogin("update-owner@example.test");
         String expenseCategoryId = createCategory(token, "EXPENSE");
@@ -157,6 +120,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Владелец удаляет свою операцию")
     void shouldDeleteOwnedTransaction() throws Exception {
         String token = registerAndLogin("delete-owner@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -172,6 +136,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Изменение операции отклоняет неверные данные и устаревшую версию")
     void shouldRejectInvalidAndStaleTransactionUpdates() throws Exception {
         String token = registerAndLogin("invalid-update-owner@example.test");
         String expenseCategoryId = createCategory(token, "EXPENSE");
@@ -197,6 +162,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Удаление по устаревшей версии возвращает конфликт и сохраняет операцию")
     void shouldRejectStaleTransactionDeletionAndPreserveTransaction() throws Exception {
         String token = registerAndLogin("stale-delete-owner@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -219,6 +185,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Изменение операции отклоняет чужую и несовместимую категорию")
     void shouldRejectMismatchedOrForeignCategoryOnTransactionUpdate() throws Exception {
         String ownerToken = registerAndLogin("category-update-owner@example.test");
         String otherToken = registerAndLogin("category-update-other@example.test");
@@ -246,6 +213,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Другой пользователь не может изменить или удалить чужую операцию")
     void shouldHideForeignTransactionForUpdateAndDelete() throws Exception {
         String ownerToken = registerAndLogin("mutation-owner@example.test");
         String otherToken = registerAndLogin("mutation-other@example.test");
@@ -265,6 +233,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Список операций фильтруется по диапазону дат")
     void shouldFilterTransactionsByDateRange() throws Exception {
         String token = registerAndLogin("date-filter@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -284,6 +253,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Список операций фильтруется по категории и скрывает чужую категорию")
     void shouldFilterTransactionsByCategoryAndHideForeignCategory() throws Exception {
         String ownerToken = registerAndLogin("category-filter-owner@example.test");
         String otherToken = registerAndLogin("category-filter-other@example.test");
@@ -305,6 +275,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Список операций фильтруется по диапазону сумм")
     void shouldFilterTransactionsByAmountRange() throws Exception {
         String token = registerAndLogin("amount-filter@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -320,6 +291,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Список операций фильтруется по типу")
     void shouldFilterTransactionsByType() throws Exception {
         String token = registerAndLogin("type-filter@example.test");
         String expenseCategoryId = createCategory(token, "EXPENSE");
@@ -335,6 +307,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Комбинация фильтров сохраняет изоляцию операций пользователя")
     void shouldCombineTransactionFiltersAndKeepCurrentUserIsolation() throws Exception {
         String ownerToken = registerAndLogin("combined-owner@example.test");
         String otherToken = registerAndLogin("combined-other@example.test");
@@ -354,6 +327,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Список операций имеет стабильную сортировку и ограничение размера страницы")
     void shouldUseStableTransactionSortAndLimitPageSize() throws Exception {
         String token = registerAndLogin("sort-filter@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -388,6 +362,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Список операций отклоняет неверные диапазоны и сортировку")
     void shouldRejectInvalidTransactionRangesAndSort() throws Exception {
         String token = registerAndLogin("invalid-filter@example.test");
 
@@ -408,6 +383,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Экспорт операций фильтруется, защищает формулы и изолирует данные пользователя")
     void shouldExportFilteredTransactionsAsProtectedCsvForCurrentUserOnly() throws Exception {
         String ownerToken = registerAndLogin("export-owner@example.test");
         String otherToken = registerAndLogin("export-other@example.test");
@@ -434,6 +410,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Экспорт ограничивается настроенным максимальным числом строк")
     void shouldLimitExportToConfiguredMaximumRows() throws Exception {
         String token = registerAndLogin("export-limit@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -456,6 +433,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Экспорт требует аутентификацию и отклоняет неверные или чужие фильтры")
     void shouldRejectUnauthenticatedAndInvalidOrForeignExportFilters() throws Exception {
         String ownerToken = registerAndLogin("export-filter-owner@example.test");
         String otherToken = registerAndLogin("export-filter-other@example.test");
@@ -478,6 +456,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Экспорт защищает формулу после начального пробельного символа")
     void shouldProtectFormulaAfterLeadingWhitespaceInExport() throws Exception {
         String token = registerAndLogin("export-formula@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -497,6 +476,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Предпросмотр CSV корректно сопоставляет поля без сохранения операций")
     void shouldPreviewMappedCsvWithoutPersistingTransactions() throws Exception {
         String token = registerAndLogin("import-preview@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -517,6 +497,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Подтверждение CSV с ошибочной строкой не сохраняет ни одной операции")
     void shouldNotPersistAnyTransactionsWhenConfirmedCsvHasAnInvalidRow() throws Exception {
         String token = registerAndLogin("import-confirm-invalid@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -536,6 +517,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Подтверждение корректного CSV сохраняет все операции и записи аудита")
     void shouldPersistEveryTransactionAndAuditRecordWhenConfirmedCsvIsValid() throws Exception {
         String token = registerAndLogin("import-confirm-valid@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -555,6 +537,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Предпросмотр CSV отклоняет неизвестное сопоставление колонок")
     void shouldRejectUnknownImportColumnMapping() throws Exception {
         String token = registerAndLogin("import-mapping@example.test");
 
@@ -565,6 +548,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Предпросмотр CSV возвращает ошибки строки для суммы, даты и валюты")
     void shouldReportInvalidAmountDateAndCurrencyAsLineErrors() throws Exception {
         String token = registerAndLogin("import-invalid-values@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -580,6 +564,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Предпросмотр CSV отклоняет файл с числом строк выше лимита")
     void shouldRejectCsvImportPreviewAboveConfiguredRowLimit() throws Exception {
         String token = registerAndLogin("import-limit@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -596,12 +581,14 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Предпросмотр CSV требует аутентификацию")
     void shouldRequireAuthenticationForCsvImportPreview() throws Exception {
         previewRequest(null, "category,amount,currency,rate,date,type\n", validImportMapping())
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
+    @DisplayName("Предпросмотр CSV отклоняет отсутствующие части multipart-запроса")
     void shouldRejectMissingCsvImportPreviewParts() throws Exception {
         String token = registerAndLogin("import-missing-parts@example.test");
 
@@ -621,6 +608,7 @@ class TransactionControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Предпросмотр CSV отклоняет файл больше multipart-лимита")
     void shouldRejectCsvImportPreviewFileAboveMultipartLimit() throws Exception {
         String token = registerAndLogin("import-file-limit@example.test");
         byte[] oversizedCsv = new byte[512 * 1024 + 1];

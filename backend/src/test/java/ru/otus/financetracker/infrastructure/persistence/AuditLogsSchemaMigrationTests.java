@@ -6,43 +6,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
+import ru.otus.financetracker.support.PostgresIntegrationTestSupport;
 
-@SpringBootTest(properties = {
-        "JWT_ISSUER=https://issuer.test",
-        "JWT_AUDIENCE=finance-tracker-test",
-        "JWT_SECRET=test-signing-secret-with-at-least-32-characters",
-        "CORS_ALLOWED_ORIGINS=https://frontend.test",
-        "MAX_REQUEST_SIZE=1MB",
-        "MAX_CSV_FILE_SIZE=512KB",
-        "MAX_CSV_ROWS=100",
-        "MAX_REQUEST_HEADER_SIZE=8KB"
-})
-@Testcontainers
-class AuditLogsSchemaMigrationTests {
-
-    @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
+class AuditLogsSchemaMigrationTests extends PostgresIntegrationTestSupport {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @DynamicPropertySource
-    static void configureDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
-
     @Test
+    @DisplayName("Миграция журнала аудита создает JSON-состояния и обязательные индексы")
     void shouldCreateAuditLogsWithJsonStatesAndRequiredIndexes() {
         assertThat(jdbcTemplate.queryForList(
                 "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'audit_logs'",
@@ -66,6 +41,7 @@ class AuditLogsSchemaMigrationTests {
     }
 
     @Test
+    @DisplayName("Журнал аудита запрещает изменение и удаление записей")
     void shouldRejectAuditLogUpdatesAndDeletes() {
         UUID actorUserId = UUID.randomUUID();
         UUID auditLogId = UUID.randomUUID();

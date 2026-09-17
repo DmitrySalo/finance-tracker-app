@@ -8,45 +8,18 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
+import ru.otus.financetracker.support.PostgresIntegrationTestSupport;
 
-@SpringBootTest(properties = {
-        "JWT_ISSUER=https://issuer.test",
-        "JWT_AUDIENCE=finance-tracker-test",
-        "JWT_SECRET=test-signing-secret-with-at-least-32-characters",
-        "CORS_ALLOWED_ORIGINS=https://frontend.test",
-        "MAX_REQUEST_SIZE=1MB",
-        "MAX_CSV_FILE_SIZE=512KB",
-        "MAX_CSV_ROWS=100",
-        "MAX_REQUEST_HEADER_SIZE=8KB"
-})
-@Testcontainers
-class RecurringTransactionsSchemaMigrationTests {
-
-    @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
-            DockerImageName.parse("postgres:18-alpine")
-    );
+class RecurringTransactionsSchemaMigrationTests extends PostgresIntegrationTestSupport {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @DynamicPropertySource
-    static void configureDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
-
     @Test
+    @DisplayName("Миграция повторяющихся операций создает ограничения идемпотентных occurrence")
     void shouldCreateRecurringRuleAndIdempotentOccurrenceConstraints() {
         var references = references();
         var ruleId = UUID.randomUUID();

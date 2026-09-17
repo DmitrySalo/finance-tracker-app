@@ -6,38 +6,17 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
 import ru.otus.financetracker.application.budgets.BudgetService;
 import ru.otus.financetracker.application.budgets.CreateBudgetCommand;
 import ru.otus.financetracker.application.transactions.TransactionRepository;
+import ru.otus.financetracker.support.PostgresIntegrationTestSupport;
 
-@SpringBootTest(properties = {
-        "JWT_ISSUER=https://issuer.test",
-        "JWT_AUDIENCE=finance-tracker-test",
-        "JWT_SECRET=test-signing-secret-with-at-least-32-characters",
-        "CORS_ALLOWED_ORIGINS=https://frontend.test",
-        "MAX_REQUEST_SIZE=1MB",
-        "MAX_CSV_FILE_SIZE=512KB",
-        "MAX_CSV_ROWS=100",
-        "MAX_REQUEST_HEADER_SIZE=8KB"
-})
-@Testcontainers
-class BudgetExpenseAggregationIntegrationTests {
-
-    @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
+class BudgetExpenseAggregationIntegrationTests extends PostgresIntegrationTestSupport {
 
     @Autowired
     private TransactionRepository transactionRepository;
@@ -48,25 +27,8 @@ class BudgetExpenseAggregationIntegrationTests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    private TransactionTemplate transactionTemplate;
-
-    @DynamicPropertySource
-    static void configureDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
-
-    @AfterEach
-    void clearData() {
-        transactionTemplate.executeWithoutResult(status -> {
-            jdbcTemplate.execute("SET LOCAL session_replication_role = replica");
-            jdbcTemplate.execute("TRUNCATE TABLE audit_logs, budgets, transactions, categories, users CASCADE");
-        });
-    }
-
     @Test
+    @DisplayName("Агрегация бюджета учитывает расходы владельца за месяц по сохраненному курсу")
     void shouldAggregateOnlyCurrentUsersCategoryExpensesWithinBudgetMonthUsingPersistedRates() {
         var userId = insertUser();
         var categoryId = insertCategory(userId, "EXPENSE");
@@ -88,6 +50,7 @@ class BudgetExpenseAggregationIntegrationTests {
     }
 
     @Test
+    @DisplayName("Список бюджетов рассчитывает ограниченные месячные агрегаты")
     void shouldCalculateListedBudgetsUsingBoundedMonthlyAggregations() {
         var userId = insertUser();
         var septemberCategoryId = insertCategory(userId, "EXPENSE");

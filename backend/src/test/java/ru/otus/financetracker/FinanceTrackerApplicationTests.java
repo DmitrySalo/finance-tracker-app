@@ -9,6 +9,7 @@ import java.time.LocalDate;
 
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -86,10 +87,12 @@ class FinanceTrackerApplicationTests {
     }
 
     @Test
+    @DisplayName("Spring context приложения успешно создается")
     void contextLoads() {
     }
 
     @Test
+    @DisplayName("Приложение настраивает UTC-часы и JSON-форматы")
     void shouldConfigureUtcClockAndJsonFormats() throws Exception {
         assertThat(clock.getZone().getId()).isEqualTo("UTC");
         var jsonPayload = new JsonPayload(
@@ -102,6 +105,7 @@ class FinanceTrackerApplicationTests {
     }
 
     @Test
+    @DisplayName("Несогласованные ограничения размера запроса отклоняются валидацией")
     void shouldRejectInconsistentSizeLimits() {
         var limits = new ApplicationProperties.Limits(
                 org.springframework.util.unit.DataSize.ofKilobytes(1),

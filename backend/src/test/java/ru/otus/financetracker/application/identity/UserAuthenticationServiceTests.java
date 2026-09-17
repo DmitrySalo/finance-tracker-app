@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 class UserAuthenticationServiceTests {
@@ -23,6 +24,7 @@ class UserAuthenticationServiceTests {
     );
 
     @Test
+    @DisplayName("Вход с неизвестным email проверяет фиктивный хеш")
     void shouldCheckDummyHashWhenEmailIsUnknown() {
         when(repository.findByEmail("unknown@example.test")).thenReturn(Optional.empty());
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);

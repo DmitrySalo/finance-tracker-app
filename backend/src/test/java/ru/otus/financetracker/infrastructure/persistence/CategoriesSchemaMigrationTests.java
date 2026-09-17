@@ -7,37 +7,18 @@ import java.time.Instant;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
 import ru.otus.financetracker.application.categories.CategoryRepository;
 import ru.otus.financetracker.domain.categories.Category;
 import ru.otus.financetracker.domain.categories.TransactionType;
+import ru.otus.financetracker.support.PostgresIntegrationTestSupport;
 
-@SpringBootTest(properties = {
-        "JWT_ISSUER=https://issuer.test",
-        "JWT_AUDIENCE=finance-tracker-test",
-        "JWT_SECRET=test-signing-secret-with-at-least-32-characters",
-        "CORS_ALLOWED_ORIGINS=https://frontend.test",
-        "MAX_REQUEST_SIZE=1MB",
-        "MAX_CSV_FILE_SIZE=512KB",
-        "MAX_CSV_ROWS=100",
-        "MAX_REQUEST_HEADER_SIZE=8KB"
-})
-@Testcontainers
-class CategoriesSchemaMigrationTests {
-
-    @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
+class CategoriesSchemaMigrationTests extends PostgresIntegrationTestSupport {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -45,14 +26,8 @@ class CategoriesSchemaMigrationTests {
     @Autowired
     private CategoryRepository categoryRepository;
 
-    @DynamicPropertySource
-    static void configureDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
-
     @Test
+    @DisplayName("Миграция категорий создает обязательные ограничения и индекс")
     void shouldCreateCategoriesTableWithRequiredConstraintsAndIndex() {
         var userId = insertUser();
 
@@ -133,6 +108,7 @@ class CategoriesSchemaMigrationTests {
     }
 
     @Test
+    @DisplayName("Имя категории уникально для пользователя и типа операции")
     void shouldEnforceCategoryNameUniquenessWithinUserAndTransactionType() {
         var userId = insertUser();
 
@@ -144,6 +120,7 @@ class CategoriesSchemaMigrationTests {
     }
 
     @Test
+    @DisplayName("Репозиторий возвращает только категории запрошенного пользователя")
     void shouldReturnOnlyCategoriesOwnedByRequestedUser() {
         var firstUserId = insertUser();
         var secondUserId = insertUser();
@@ -163,6 +140,7 @@ class CategoriesSchemaMigrationTests {
     }
 
     @Test
+    @DisplayName("Сохранение категории с устаревшей версией отклоняется")
     void shouldRejectSavingCategoryWithStaleVersion() {
         var userId = insertUser();
         var category = category(userId, "Food");

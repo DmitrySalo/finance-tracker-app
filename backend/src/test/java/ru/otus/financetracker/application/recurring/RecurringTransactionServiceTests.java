@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import ru.otus.financetracker.application.audit.TransactionAuditService;
 import ru.otus.financetracker.application.categories.CategoryRepository;
 import ru.otus.financetracker.application.transactions.TransactionRepository;
@@ -49,6 +50,7 @@ class RecurringTransactionServiceTests {
     );
 
     @Test
+    @DisplayName("Повторяющаяся операция создается в последний день короткого месяца и переносится на 31 марта")
     void shouldCreateOccurrenceOnLastDayOfShortMonthAndAdvanceToMarchThirtyFirst() {
         RecurringTransaction rule = rule(LocalDate.of(2026, 1, 31), 31, true);
         recurringRepository.rules.add(rule);
@@ -64,6 +66,7 @@ class RecurringTransactionServiceTests {
     }
 
     @Test
+    @DisplayName("Неактивное повторяющееся правило не создает операцию")
     void shouldSkipInactiveRule() {
         recurringRepository.rules.add(rule(LocalDate.of(2026, 2, 28), 28, false));
 
@@ -73,6 +76,7 @@ class RecurringTransactionServiceTests {
     }
 
     @Test
+    @DisplayName("Повторная обработка не создает дублирующуюся операцию")
     void shouldBeIdempotentWhenDueProcessingIsRepeated() {
         recurringRepository.rules.add(rule(LocalDate.of(2026, 2, 28), 28, true));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -84,6 +88,7 @@ class RecurringTransactionServiceTests {
     }
 
     @Test
+    @DisplayName("Догрузка ограничена на одно правило и сохраняет дату следующего запуска")
     void shouldLimitBackfillPerRuleAndPreserveNextOccurrenceDateForNextRun() {
         recurringRepository.rules.add(rule(LocalDate.of(2025, 1, 31), 31, true));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));

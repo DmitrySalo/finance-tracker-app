@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import ru.otus.financetracker.domain.identity.User;
@@ -32,6 +33,7 @@ class UserRegistrationServiceTests {
     );
 
     @Test
+    @DisplayName("Регистрация нормализует email, хеширует пароль и сохраняет пользователя")
     void shouldNormalizeEmailHashPasswordAndSaveUser() {
         when(passwordEncoder.encode("a-secure-password")).thenReturn("hashed-password");
 
@@ -55,6 +57,7 @@ class UserRegistrationServiceTests {
     }
 
     @Test
+    @DisplayName("Повторный email не раскрывается при регистрации")
     void shouldNotExposeDuplicateEmailFailure() {
         when(passwordEncoder.encode(any())).thenReturn("hashed-password");
         doThrow(new DuplicateEmailException(new RuntimeException())).when(repository).save(any());

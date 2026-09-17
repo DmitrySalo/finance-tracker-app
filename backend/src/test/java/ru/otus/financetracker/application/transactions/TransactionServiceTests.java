@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.mockito.ArgumentCaptor;
 import ru.otus.financetracker.application.audit.TransactionAuditService;
 import ru.otus.financetracker.application.categories.CategoryRepository;
@@ -37,6 +38,7 @@ class TransactionServiceTests {
     );
 
     @Test
+    @DisplayName("Сервис создает операцию с сохраненным курсом для собственной совместимой категории")
     void shouldCreateTransactionWithFixedExchangeRateForOwnedMatchingCategory() {
         UUID userId = UUID.randomUUID();
         UUID categoryId = UUID.randomUUID();
@@ -66,6 +68,7 @@ class TransactionServiceTests {
     }
 
     @Test
+    @DisplayName("Сервис отклоняет операцию, если тип категории не совпадает с типом операции")
     void shouldRejectTransactionWhenCategoryTypeDiffersFromTransactionType() {
         UUID userId = UUID.randomUUID();
         UUID categoryId = UUID.randomUUID();
@@ -78,6 +81,7 @@ class TransactionServiceTests {
     }
 
     @Test
+    @DisplayName("Сервис скрывает операцию другого пользователя")
     void shouldHideTransactionWhenItBelongsToAnotherUser() {
         UUID transactionId = UUID.randomUUID();
         UUID currentUserId = UUID.randomUUID();

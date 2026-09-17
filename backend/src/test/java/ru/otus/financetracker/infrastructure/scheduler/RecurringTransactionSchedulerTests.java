@@ -9,11 +9,13 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import ru.otus.financetracker.application.recurring.RecurringTransactionService;
 
 class RecurringTransactionSchedulerTests {
 
     @Test
+    @DisplayName("Планировщик получает бизнес-дату из внедренных часов")
     void shouldUseBusinessDateFromInjectedClock() {
         var service = mock(RecurringTransactionService.class);
         var clock = Clock.fixed(

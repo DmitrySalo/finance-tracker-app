@@ -8,43 +8,18 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
+import ru.otus.financetracker.support.PostgresIntegrationTestSupport;
 
-@SpringBootTest(properties = {
-        "JWT_ISSUER=https://issuer.test",
-        "JWT_AUDIENCE=finance-tracker-test",
-        "JWT_SECRET=test-signing-secret-with-at-least-32-characters",
-        "CORS_ALLOWED_ORIGINS=https://frontend.test",
-        "MAX_REQUEST_SIZE=1MB",
-        "MAX_CSV_FILE_SIZE=512KB",
-        "MAX_CSV_ROWS=100",
-        "MAX_REQUEST_HEADER_SIZE=8KB"
-})
-@Testcontainers
-class TransactionsSchemaMigrationTests {
-
-    @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
+class TransactionsSchemaMigrationTests extends PostgresIntegrationTestSupport {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @DynamicPropertySource
-    static void configureDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
-
     @Test
+    @DisplayName("Миграция операций создает обязательные индексы")
     void shouldCreateTransactionsTableWithRequiredIndexes() {
         assertThat(jdbcTemplate.queryForList(
                 "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' "
@@ -72,6 +47,7 @@ class TransactionsSchemaMigrationTests {
     }
 
     @Test
+    @DisplayName("Таблица операций отклоняет неположительную сумму")
     void shouldRejectNonPositiveTransactionAmount() {
         var transactionReferences = insertTransactionReferences();
 
@@ -85,6 +61,7 @@ class TransactionsSchemaMigrationTests {
     }
 
     @Test
+    @DisplayName("Таблица операций отклоняет неположительный курс")
     void shouldRejectNonPositiveExchangeRate() {
         var transactionReferences = insertTransactionReferences();
 
@@ -98,6 +75,7 @@ class TransactionsSchemaMigrationTests {
     }
 
     @Test
+    @DisplayName("Таблица операций отклоняет валюту неверного формата")
     void shouldRejectInvalidCurrency() {
         var transactionReferences = insertTransactionReferences();
 
@@ -113,6 +91,7 @@ class TransactionsSchemaMigrationTests {
     }
 
     @Test
+    @DisplayName("Таблица операций отклоняет неизвестный тип операции")
     void shouldRejectInvalidTransactionType() {
         var transactionReferences = insertTransactionReferences();
 
@@ -128,6 +107,7 @@ class TransactionsSchemaMigrationTests {
     }
 
     @Test
+    @DisplayName("Таблица операций отклоняет неизвестного пользователя и категорию")
     void shouldRejectTransactionWithUnknownUserOrCategory() {
         var transactionReferences = insertTransactionReferences();
 
@@ -148,6 +128,7 @@ class TransactionsSchemaMigrationTests {
     }
 
     @Test
+    @DisplayName("Таблица операций отклоняет чужую и несовместимую категорию")
     void shouldRejectTransactionForAnotherUsersCategoryOrMismatchedCategoryType() {
         var transactionReferences = insertTransactionReferences();
         var otherUserId = insertUser();

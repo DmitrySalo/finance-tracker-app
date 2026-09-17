@@ -8,11 +8,13 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import ru.otus.financetracker.domain.budgets.Budget;
 
 class BudgetCalculationTests {
 
     @Test
+    @DisplayName("Расчет бюджета без расходов возвращает нулевой процент")
     void shouldCalculateZeroPercentWhenThereAreNoExpenses() {
         var calculation = BudgetCalculation.from(budget("100.0000"), BigDecimal.ZERO);
 
@@ -22,6 +24,7 @@ class BudgetCalculationTests {
     }
 
     @Test
+    @DisplayName("Расчет бюджета на лимите возвращает сто процентов")
     void shouldCalculateOneHundredPercentAtBudgetLimit() {
         var calculation = BudgetCalculation.from(budget("100.0000"), new BigDecimal("100.0000"));
 
@@ -30,6 +33,7 @@ class BudgetCalculationTests {
     }
 
     @Test
+    @DisplayName("Расчет превышенного бюджета возвращает отрицательный остаток и процент выше ста")
     void shouldCalculateNegativeRemainingAndPercentageAboveOneHundredWhenBudgetIsExceeded() {
         var calculation = BudgetCalculation.from(budget("100.0000"), new BigDecimal("125.5000"));
 

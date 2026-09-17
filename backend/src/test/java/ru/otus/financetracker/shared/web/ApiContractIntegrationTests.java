@@ -17,6 +17,7 @@ import java.util.Set;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -102,6 +103,7 @@ class ApiContractIntegrationTests {
     private MockMvc mockMvc;
 
     @Test
+    @DisplayName("Ошибка валидации сохраняет входящий идентификатор корреляции")
     void shouldReturnStableValidationErrorWithIncomingCorrelationId() throws Exception {
         mockMvc.perform(post("/api/v1/test/validation")
                         .with(user("test-user"))
@@ -118,6 +120,7 @@ class ApiContractIntegrationTests {
     }
 
     @Test
+    @DisplayName("Анонимный запрос получает единый ответ о необходимости аутентификации")
     void shouldReturnUnauthorizedErrorForAnonymousRequest() throws Exception {
         mockMvc.perform(get("/api/v1/test/secured"))
                 .andExpect(status().isUnauthorized())
@@ -129,6 +132,7 @@ class ApiContractIntegrationTests {
     }
 
     @Test
+    @DisplayName("Отсутствующий ресурс возвращает единый ответ not found")
     void shouldReturnNotFoundErrorForMissingResource() throws Exception {
         mockMvc.perform(get("/api/v1/test/missing").with(user("test-user")))
                 .andExpect(status().isNotFound())
@@ -138,6 +142,7 @@ class ApiContractIntegrationTests {
     }
 
     @Test
+    @DisplayName("Неизвестный путь API возвращает единый ответ not found")
     void shouldReturnNotFoundErrorForUnknownApiPath() throws Exception {
         mockMvc.perform(get("/api/v1/test/unknown").with(user("test-user")))
                 .andExpect(status().isNotFound())
@@ -147,6 +152,7 @@ class ApiContractIntegrationTests {
     }
 
     @Test
+    @DisplayName("Конфликт оптимистической блокировки возвращает единый ответ")
     void shouldReturnConflictErrorForOptimisticLockFailure() throws Exception {
         mockMvc.perform(get("/api/v1/test/conflict").with(user("test-user")))
                 .andExpect(status().isConflict())
@@ -156,6 +162,7 @@ class ApiContractIntegrationTests {
     }
 
     @Test
+    @DisplayName("Постраничный ответ использует общий envelope")
     void shouldReturnCommonPaginationEnvelope() throws Exception {
         mockMvc.perform(get("/api/v1/test/paged").with(user("test-user")))
                 .andExpect(status().isOk())
@@ -167,6 +174,7 @@ class ApiContractIntegrationTests {
     }
 
     @Test
+    @DisplayName("Некорректный JSON возвращает единый ответ валидации")
     void shouldReturnValidationErrorForMalformedJson() throws Exception {
         mockMvc.perform(post("/api/v1/test/validation")
                         .with(user("test-user"))
@@ -178,6 +186,7 @@ class ApiContractIntegrationTests {
     }
 
     @Test
+    @DisplayName("Превышение размера нечитаемого тела возвращает ошибку payload too large")
     void shouldReturnPayloadTooLargeWhenUnreadableMessageWasCausedBySizeLimit() throws Exception {
         mockMvc.perform(get("/api/v1/test/payload-too-large").with(user("test-user")))
                 .andExpect(status().isPayloadTooLarge())
@@ -187,6 +196,7 @@ class ApiContractIntegrationTests {
     }
 
     @Test
+    @DisplayName("Отказ в доступе не раскрывает внутренние детали")
     void shouldReturnForbiddenErrorWithoutInternalDetails() throws Exception {
         mockMvc.perform(get("/api/v1/test/forbidden").with(user("test-user")))
                 .andExpect(status().isForbidden())
@@ -196,6 +206,7 @@ class ApiContractIntegrationTests {
     }
 
     @Test
+    @DisplayName("CORS preflight разрешен для настроенного источника")
     void shouldAllowCorsPreflightForConfiguredOrigin() throws Exception {
         mockMvc.perform(options("/api/v1/test/secured")
                         .header("Origin", "https://frontend.test")
@@ -211,18 +222,21 @@ class ApiContractIntegrationTests {
     }
 
     @Test
+    @DisplayName("Проверка здоровья доступна без аутентификации")
     void shouldExposeHealthEndpointWithoutAuthentication() throws Exception {
         mockMvc.perform(get("/actuator/health"))
                 .andExpect(status().isOk());
     }
 
     @Test
+    @DisplayName("Информация приложения требует аутентификацию")
     void shouldRequireAuthenticationForInfoEndpoint() throws Exception {
         mockMvc.perform(get("/actuator/info"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
+    @DisplayName("OpenAPI описывает все реализованные ресурсы API")
     void shouldDescribeAllImplementedApiResourcesInOpenApi() throws Exception {
         MvcResult openApiDocument = mockMvc.perform(get("/v3/api-docs").with(user("test-user")))
                 .andExpect(status().isOk())
@@ -268,6 +282,7 @@ class ApiContractIntegrationTests {
     }
 
     @Test
+    @DisplayName("Некорректный параметр запроса возвращает ошибку поля")
     void shouldReturnFieldViolationForInvalidRequestParameter() throws Exception {
         mockMvc.perform(get("/api/v1/test/paged-validation?page=0").with(user("test-user")))
                 .andExpect(status().isBadRequest())

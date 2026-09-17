@@ -9,39 +9,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
+import ru.otus.financetracker.support.PostgresIntegrationTestSupport;
 
-@SpringBootTest(properties = {
-        "JWT_ISSUER=https://issuer.test",
-        "JWT_AUDIENCE=finance-tracker-test",
-        "JWT_SECRET=test-signing-secret-with-at-least-32-characters",
-        "CORS_ALLOWED_ORIGINS=https://frontend.test",
-        "MAX_REQUEST_SIZE=1MB",
-        "MAX_CSV_FILE_SIZE=512KB",
-        "MAX_CSV_ROWS=100",
-        "MAX_REQUEST_HEADER_SIZE=8KB",
-        "REGISTRATION_MAX_ATTEMPTS=100"
-})
 @AutoConfigureMockMvc
-@Testcontainers
-class CategoryControllerIntegrationTests {
-
-    @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
-            DockerImageName.parse("postgres:18-alpine")
-    );
+class CategoryControllerIntegrationTests extends PostgresIntegrationTestSupport {
 
     @Autowired
     private MockMvc mockMvc;
@@ -49,20 +26,8 @@ class CategoryControllerIntegrationTests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @DynamicPropertySource
-    static void configureDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
-
-    @AfterEach
-    void clearData() {
-        jdbcTemplate.update("DELETE FROM categories");
-        jdbcTemplate.update("DELETE FROM users");
-    }
-
     @Test
+    @DisplayName("Владелец создает, читает, изменяет и удаляет свою категорию")
     void shouldCreateListGetUpdateAndDeleteOwnedCategory() throws Exception {
         String token = registerAndLogin("owner@example.test");
 
@@ -111,6 +76,7 @@ class CategoryControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Запросы категорий отклоняют неаутентифицированного пользователя и неверные данные")
     void shouldRejectInvalidCategoryAndUnauthenticatedRequest() throws Exception {
         mockMvc.perform(post("/api/v1/categories")
                         .contentType("application/json")
@@ -132,6 +98,7 @@ class CategoryControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Категория другого пользователя скрыта при чтении и изменении")
     void shouldHideCategoryOwnedByAnotherUser() throws Exception {
         String ownerToken = registerAndLogin("owner@example.test");
         String otherToken = registerAndLogin("other@example.test");
@@ -167,6 +134,7 @@ class CategoryControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Изменение категории с устаревшей версией возвращает конфликт")
     void shouldRejectUpdateWithStaleVersion() throws Exception {
         String token = registerAndLogin("owner@example.test");
         var createResponse = mockMvc.perform(post("/api/v1/categories")
@@ -198,6 +166,7 @@ class CategoryControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Изменение категории с отрицательной версией отклоняется")
     void shouldRejectNegativeCategoryVersion() throws Exception {
         String token = registerAndLogin("owner@example.test");
         var createResponse = mockMvc.perform(post("/api/v1/categories")

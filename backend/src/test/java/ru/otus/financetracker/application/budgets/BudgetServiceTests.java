@@ -14,6 +14,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import ru.otus.financetracker.application.audit.BudgetAuditService;
 import ru.otus.financetracker.application.categories.CategoryRepository;
 import ru.otus.financetracker.application.identity.UserAuthenticationRepository;
@@ -48,6 +49,7 @@ class BudgetServiceTests {
     );
 
     @Test
+    @DisplayName("Сервис создает бюджет для собственной расходной категории на первый день месяца")
     void shouldCreateBudgetForOwnedExpenseCategoryAndFirstDayOfMonth() {
         UUID userId = UUID.randomUUID();
         UUID categoryId = UUID.randomUUID();
@@ -79,6 +81,7 @@ class BudgetServiceTests {
     }
 
     @Test
+    @DisplayName("Сервис отклоняет бюджет для доходной категории")
     void shouldRejectBudgetForIncomeCategory() {
         UUID userId = UUID.randomUUID();
         UUID categoryId = UUID.randomUUID();
@@ -91,6 +94,7 @@ class BudgetServiceTests {
     }
 
     @Test
+    @DisplayName("Сервис отклоняет месяц бюджета не с первого дня")
     void shouldRejectBudgetMonthThatIsNotFirstDay() {
         assertThatThrownBy(
                 () -> service.create(UUID.randomUUID(), command(UUID.randomUUID(), LocalDate.of(2026, 9, 2)))
@@ -99,6 +103,7 @@ class BudgetServiceTests {
     }
 
     @Test
+    @DisplayName("Сервис скрывает бюджет другого пользователя")
     void shouldHideBudgetOwnedByAnotherUser() {
         UUID userId = UUID.randomUUID();
         UUID budgetId = UUID.randomUUID();
@@ -108,6 +113,7 @@ class BudgetServiceTests {
     }
 
     @Test
+    @DisplayName("Сервис отклоняет валюту бюджета, отличающуюся от базовой валюты пользователя")
     void shouldRejectBudgetCurrencyDifferentFromUserBaseCurrency() {
         UUID userId = UUID.randomUUID();
         UUID categoryId = UUID.randomUUID();

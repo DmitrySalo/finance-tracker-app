@@ -12,7 +12,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,36 +21,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
 import ru.otus.financetracker.application.transactions.CreateTransactionCommand;
 import ru.otus.financetracker.application.transactions.TransactionService;
 import ru.otus.financetracker.application.transactions.UpdateTransactionCommand;
 import ru.otus.financetracker.domain.categories.TransactionType;
+import ru.otus.financetracker.support.PostgresIntegrationTestSupport;
 
-@SpringBootTest(properties = {
-        "JWT_ISSUER=https://issuer.test",
-        "JWT_AUDIENCE=finance-tracker-test",
-        "JWT_SECRET=test-signing-secret-with-at-least-32-characters",
-        "CORS_ALLOWED_ORIGINS=https://frontend.test",
-        "MAX_REQUEST_SIZE=1MB",
-        "MAX_CSV_FILE_SIZE=512KB",
-        "MAX_CSV_ROWS=100",
-        "MAX_REQUEST_HEADER_SIZE=8KB"
-})
 @Import(TransactionAuditIntegrationTests.FixedClockConfiguration.class)
-@Testcontainers
-class TransactionAuditIntegrationTests {
+class TransactionAuditIntegrationTests extends PostgresIntegrationTestSupport {
 
     private static final Instant AUDIT_TIME = Instant.parse("2026-09-16T12:00:00Z");
-
-    @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
 
     @Autowired
     private TransactionService transactionService;
@@ -61,22 +42,8 @@ class TransactionAuditIntegrationTests {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
-    @DynamicPropertySource
-    static void configureDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
-
-    @AfterEach
-    void clearData() {
-        transactionTemplate.executeWithoutResult(status -> {
-            jdbcTemplate.execute("SET LOCAL session_replication_role = replica");
-            jdbcTemplate.execute("TRUNCATE TABLE audit_logs, transactions, categories, users CASCADE");
-        });
-    }
-
     @Test
+    @DisplayName("Создание, изменение и удаление операции записываются в аудит с безопасными состояниями")
     void shouldRecordCreateUpdateAndDeleteWithSafeBusinessStates() {
         UUID actorUserId = UUID.randomUUID();
         UUID categoryId = insertTransactionReferences(actorUserId);
@@ -126,6 +93,7 @@ class TransactionAuditIntegrationTests {
     }
 
     @Test
+    @DisplayName("Откат внешней транзакции отменяет операцию и ее запись аудита")
     void shouldRollBackAuditAndTransactionWhenEnclosingTransactionFails() {
         UUID actorUserId = UUID.randomUUID();
         UUID categoryId = insertTransactionReferences(actorUserId);

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.util.unit.DataSize;
@@ -42,6 +43,7 @@ class RequestSizeLimitFilterTests {
     );
 
     @Test
+    @DisplayName("Фильтр отклоняет запрос с Content-Length выше лимита")
     void shouldRejectRequestWhenContentLengthExceedsLimit() throws Exception {
         var request = new MockHttpServletRequest();
         request.setContent(new byte[5]);
@@ -61,6 +63,7 @@ class RequestSizeLimitFilterTests {
     }
 
     @Test
+    @DisplayName("Фильтр отклоняет chunked-запрос с телом выше лимита")
     void shouldRejectChunkedRequestWhenBodyExceedsLimit() throws Exception {
         var request = new MockHttpServletRequest() {
             @Override

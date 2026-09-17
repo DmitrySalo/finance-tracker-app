@@ -7,39 +7,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
+import ru.otus.financetracker.support.PostgresIntegrationTestSupport;
 
-@SpringBootTest(properties = {
-    "JWT_ISSUER=https://issuer.test",
-    "JWT_AUDIENCE=finance-tracker-test",
-    "JWT_SECRET=test-signing-secret-with-at-least-32-characters",
-    "CORS_ALLOWED_ORIGINS=https://frontend.test",
-    "MAX_REQUEST_SIZE=1MB",
-    "MAX_CSV_FILE_SIZE=512KB",
-    "MAX_CSV_ROWS=100",
-    "MAX_REQUEST_HEADER_SIZE=8KB",
-    "REGISTRATION_MAX_ATTEMPTS=100"
-})
 @AutoConfigureMockMvc
-@Testcontainers
-class BudgetControllerIntegrationTests {
-    @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
-        DockerImageName.parse("postgres:18-alpine")
-    );
+class BudgetControllerIntegrationTests extends PostgresIntegrationTestSupport {
 
     @Autowired
     private MockMvc mockMvc;
@@ -47,25 +24,8 @@ class BudgetControllerIntegrationTests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    private TransactionTemplate transactionTemplate;
-
-    @DynamicPropertySource
-    static void configureDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-    }
-
-    @AfterEach
-    void clearData() {
-        transactionTemplate.executeWithoutResult(status -> {
-            jdbcTemplate.execute("SET LOCAL session_replication_role = replica");
-            jdbcTemplate.execute("TRUNCATE TABLE audit_logs, budgets, transactions, categories, users CASCADE");
-        });
-    }
-
     @Test
+    @DisplayName("Владелец создает, читает, изменяет и удаляет бюджет")
     void shouldCreateListGetUpdateAndDeleteBudget() throws Exception {
         String token = registerAndLogin("budget-owner@example.test");
         String categoryId = createCategory(token, "EXPENSE");
@@ -91,6 +51,7 @@ class BudgetControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Бюджет отклоняет неверные месяц, лимит, категорию и дубликат")
     void shouldRejectInvalidMonthLimitIncomeAndDuplicateBudget() throws Exception {
         String token = registerAndLogin("budget-validation@example.test");
         String expense = createCategory(token, "EXPENSE");
@@ -118,12 +79,14 @@ class BudgetControllerIntegrationTests {
     }
 
     @Test
+    @DisplayName("Бюджеты требуют аутентификацию")
     void shouldRequireAuthenticationForBudgets() throws Exception {
         mockMvc.perform(get("/api/v1/budgets"))
             .andExpect(status().isUnauthorized());
     }
 
     @Test
+    @DisplayName("Чужой бюджет скрыт, а устаревшая версия вызывает конфликт")
     void shouldHideForeignBudgetAndRejectStaleUpdateAndDelete() throws Exception {
         String owner = registerAndLogin("budget-owner2@example.test");
         String other = registerAndLogin("budget-other@example.test");
