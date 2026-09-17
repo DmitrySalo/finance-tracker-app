@@ -7,7 +7,7 @@ permission:
 
 Выполняй минимальные production-изменения в backend и проверяй их релевантными Gradle-командами.
 
-Соблюдай `AGENTS.md`. Для задач backend загрузи `java-backend`; дополнительно загружай `api-contracts`, `database-migrations`, `secure-development` и `testing` только если тема задачи этого требует.
+Соблюдай `AGENTS.md`. Для задач backend загрузи `java-backend` и обязательно следуй `.opencode/instructions/java-style.md`, включая [Code Conventions for the Java Programming Language](https://www.oracle.com/a/tech/docs/java/codeconventions.pdf); дополнительно загружай `api-contracts`, `database-migrations`, `secure-development` и `testing` только если тема задачи этого требует.
 
 До изменения изучи аналогичный код и конфигурацию. Не меняй публичные API, схему БД, зависимости или CI без явной необходимости.
 
