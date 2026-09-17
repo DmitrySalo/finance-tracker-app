@@ -52,6 +52,13 @@ test("registers, signs in, and manages a transaction through CSV import", async 
   expect((await transactionResponse).status()).toBe(201);
   await expect(page.getByText("E2E grocery transaction")).toBeVisible();
 
+  await page.getByRole("button", { name: "Edit transaction" }).click();
+  await page.locator("#transaction-description").fill("Updated E2E grocery transaction");
+  const transactionUpdateResponse = page.waitForResponse((response) => /\/api\/v1\/transactions\/[^/]+$/.test(response.url()) && response.request().method() === "PATCH");
+  await page.getByRole("button", { name: "Save transaction" }).click();
+  expect((await transactionUpdateResponse).status()).toBe(200);
+  await expect(page.getByText("Updated E2E grocery transaction")).toBeVisible();
+
   await page.getByRole("link", { name: "Budgets" }).click();
   await page.getByRole("button", { name: "Add budget" }).click();
   await page.getByLabel("Expense category").selectOption({ label: `🏠 ${categoryName}` });
@@ -65,7 +72,7 @@ test("registers, signs in, and manages a transaction through CSV import", async 
   await expect(budgetProgress).toHaveAttribute("aria-valuetext", /Spent 42\.5/);
 
   await page.getByRole("link", { name: "Dashboard" }).click();
-  await page.getByLabel("Month").fill(month);
+  await page.locator("#dashboard-month-picker").fill(month);
   const dashboardCategory = page.getByRole("listitem").filter({ hasText: categoryName }).first();
   await expect(dashboardCategory).toBeVisible();
   await expect(dashboardCategory).toContainText("42.5");
