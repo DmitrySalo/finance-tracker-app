@@ -59,4 +59,12 @@ public class AuditLogJpaEntity {
         this.beforeState = beforeState;
         this.afterState = afterState;
     }
+
+    UUID id() { return id; }
+    String entityType() { return entityType; }
+    UUID entityId() { return entityId; }
+    AuditAction action() { return action; }
+    Instant occurredAt() { return occurredAt; }
+    JsonNode beforeState() { return beforeState; }
+    JsonNode afterState() { return afterState; }
 }

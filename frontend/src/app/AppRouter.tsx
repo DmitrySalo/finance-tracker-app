@@ -9,6 +9,8 @@ import { CategoriesManager } from "../features/categories/components/CategoriesM
 import { BudgetsManager } from "../features/budgets/components/BudgetsManager";
 import { DashboardManager } from "../features/dashboard/components/DashboardManager";
 import { TransactionsManager } from "../features/transactions/components/TransactionsManager";
+import { RecurringTransactionsManager } from "../features/recurring-transactions/components/RecurringTransactionsManager";
+import { AuditLogManager } from "../features/audit/components/AuditLogManager";
 import { AppShell } from "./AppShell";
 
 const protectedRoutes = [
@@ -34,7 +36,7 @@ export function AppRouter() {
         <Route element={<RegisterPage />} path="/register" />
         <Route element={<ProtectedRoute />}>
           {protectedRoutes.map(([path, title]) => (
-            <Route element={path === "dashboard" ? <DashboardManager /> : path === "categories" ? <CategoriesManager /> : path === "transactions" ? <TransactionsManager /> : path === "budgets" ? <BudgetsManager /> : <ProtectedPage title={title} />} key={path} path={path} />
+            <Route element={path === "dashboard" ? <DashboardManager /> : path === "categories" ? <CategoriesManager /> : path === "transactions" ? <TransactionsManager /> : path === "budgets" ? <BudgetsManager /> : path === "recurring-transactions" ? <RecurringTransactionsManager /> : path === "audit-logs" ? <AuditLogManager /> : <ProtectedPage title={title} />} key={path} path={path} />
           ))}
         </Route>
         <Route element={<NotFoundPage />} path="*" />

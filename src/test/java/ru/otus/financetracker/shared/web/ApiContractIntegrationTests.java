@@ -249,7 +249,8 @@ class ApiContractIntegrationTests {
                         Map.entry("/api/v1/dashboard", Set.of("get")),
                         Map.entry("/api/v1/dashboard/spending-trend", Set.of("get")),
                         Map.entry("/api/v1/recurring-transactions", Set.of("get", "post")),
-                        Map.entry("/api/v1/recurring-transactions/{id}", Set.of("get", "patch", "delete"))
+                        Map.entry("/api/v1/recurring-transactions/{id}", Set.of("get", "patch", "delete")),
+                        Map.entry("/api/v1/audit-logs", Set.of("get"))
                 ));
     }
 
