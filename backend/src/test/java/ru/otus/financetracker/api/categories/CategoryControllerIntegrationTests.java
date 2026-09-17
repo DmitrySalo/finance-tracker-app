@@ -39,7 +39,9 @@ import org.testcontainers.utility.DockerImageName;
 class CategoryControllerIntegrationTests {
 
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
+            DockerImageName.parse("postgres:18-alpine")
+    );
 
     @Autowired
     private MockMvc mockMvc;
@@ -82,12 +84,14 @@ class CategoryControllerIntegrationTests {
         long version = new tools.jackson.databind.ObjectMapper().readTree(createResponse.getResponse().getContentAsString())
                 .get("version").asLong();
 
-        mockMvc.perform(get("/api/v1/categories").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/v1/categories")
+                .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].id").value(categoryId))
                 .andExpect(jsonPath("$.page.number").value(0))
                 .andExpect(jsonPath("$.page.size").value(20));
-        mockMvc.perform(get("/api/v1/categories/{categoryId}", categoryId).header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/v1/categories/{categoryId}", categoryId)
+                .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Food"));
         mockMvc.perform(patch("/api/v1/categories/{categoryId}", categoryId)
@@ -99,7 +103,8 @@ class CategoryControllerIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Groceries"))
                 .andExpect(jsonPath("$.icon").value("cart"));
-        mockMvc.perform(delete("/api/v1/categories/{categoryId}", categoryId).header("Authorization", "Bearer " + token))
+        mockMvc.perform(delete("/api/v1/categories/{categoryId}", categoryId)
+                .header("Authorization", "Bearer " + token))
                 .andExpect(status().isNoContent());
 
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM categories", Integer.class)).isZero();
@@ -141,7 +146,8 @@ class CategoryControllerIntegrationTests {
         String categoryId = new tools.jackson.databind.ObjectMapper().readTree(createResponse.getResponse().getContentAsString())
                 .get("id").asText();
 
-        mockMvc.perform(get("/api/v1/categories/{categoryId}", categoryId).header("Authorization", "Bearer " + otherToken))
+        mockMvc.perform(get("/api/v1/categories/{categoryId}", categoryId)
+                .header("Authorization", "Bearer " + otherToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
         mockMvc.perform(patch("/api/v1/categories/{categoryId}", categoryId)
@@ -151,7 +157,8 @@ class CategoryControllerIntegrationTests {
                                 {"version":0,"name":"Food","transactionType":"EXPENSE","icon":"utensils","color":"#0A1B2C"}
                                 """))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/categories/not-a-uuid").header("Authorization", "Bearer " + otherToken))
+        mockMvc.perform(get("/api/v1/categories/not-a-uuid")
+                .header("Authorization", "Bearer " + otherToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
         mockMvc.perform(delete("/api/v1/categories/{categoryId}", categoryId)

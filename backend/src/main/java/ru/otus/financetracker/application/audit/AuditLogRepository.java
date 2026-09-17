@@ -11,6 +11,10 @@ public interface AuditLogRepository {
 
     void save(AuditLog auditLog);
 
-    Page<AuditLogEntry> findAllByActorUserIdAndEntityType(UUID actorUserId, String entityType, UUID entityId,
-                                                           Pageable pageable);
+    Page<AuditLogEntry> findAllByActorUserIdAndEntityType(
+            UUID actorUserId,
+            String entityType,
+            UUID entityId,
+            Pageable pageable
+    );
 }

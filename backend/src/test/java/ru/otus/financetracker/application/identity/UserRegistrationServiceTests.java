@@ -21,14 +21,26 @@ class UserRegistrationServiceTests {
 
     private final UserRegistrationRepository repository = mock(UserRegistrationRepository.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
-    private final Clock clock = Clock.fixed(Instant.parse("2026-09-16T12:00:00Z"), ZoneOffset.UTC);
-    private final UserRegistrationService service = new UserRegistrationService(repository, passwordEncoder, clock);
+    private final Clock clock = Clock.fixed(
+            Instant.parse("2026-09-16T12:00:00Z"),
+            ZoneOffset.UTC
+    );
+    private final UserRegistrationService service = new UserRegistrationService(
+            repository,
+            passwordEncoder,
+            clock
+    );
 
     @Test
     void shouldNormalizeEmailHashPasswordAndSaveUser() {
         when(passwordEncoder.encode("a-secure-password")).thenReturn("hashed-password");
 
-        service.register(new RegisterUserCommand(" Person@Example.Test ", "a-secure-password", " Test User ", "USD"));
+        service.register(new RegisterUserCommand(
+                " Person@Example.Test ",
+                "a-secure-password",
+                " Test User ",
+                "USD"
+        ));
 
         var userCaptor = ArgumentCaptor.forClass(User.class);
         verify(repository).save(userCaptor.capture());

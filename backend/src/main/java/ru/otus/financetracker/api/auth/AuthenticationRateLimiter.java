@@ -1,11 +1,12 @@
 package ru.otus.financetracker.api.auth;
 
 import java.time.Clock;
-import java.time.Instant;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Component;
+
 import ru.otus.financetracker.configuration.ApplicationProperties;
 
 @Component
@@ -33,7 +34,9 @@ public class AuthenticationRateLimiter {
 
     private boolean tryAcquire(String key, Instant now) {
         if (!windows.containsKey(key) && windows.size() >= MAX_TRACKED_KEYS) {
-            windows.entrySet().removeIf(entry -> !now.isBefore(entry.getValue().startedAt().plus(windowDuration)));
+            windows.entrySet().removeIf(
+                    entry -> !now.isBefore(entry.getValue().startedAt().plus(windowDuration))
+            );
             if (windows.size() >= MAX_TRACKED_KEYS) {
                 return false;
             }
@@ -43,7 +46,8 @@ public class AuthenticationRateLimiter {
                 return new RateLimitWindow(now, 1);
             }
             return new RateLimitWindow(existing.startedAt(), existing.attempts() + 1);
-        }).attempts() <= maxAttempts;
+        })
+                .attempts() <= maxAttempts;
     }
 
     private record RateLimitWindow(Instant startedAt, int attempts) {

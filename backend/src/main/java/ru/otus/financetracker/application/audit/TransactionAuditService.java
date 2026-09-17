@@ -34,17 +34,34 @@ public class TransactionAuditService {
         save(actorUserId, transaction.id(), AuditAction.DELETE, stateOf(transaction), null);
     }
 
-    private void save(UUID actorUserId, UUID entityId, AuditAction action, TransactionAuditState beforeState,
-                      TransactionAuditState afterState) {
+    private void save(
+            UUID actorUserId,
+            UUID entityId,
+            AuditAction action,
+            TransactionAuditState beforeState,
+            TransactionAuditState afterState
+    ) {
         auditLogRepository.save(new AuditLog(
-                UUID.randomUUID(), actorUserId, TRANSACTION_ENTITY_TYPE, entityId, action, clock.instant(), beforeState, afterState
+                UUID.randomUUID(),
+                actorUserId,
+                TRANSACTION_ENTITY_TYPE,
+                entityId,
+                action,
+                clock.instant(),
+                beforeState,
+                afterState
         ));
     }
 
     private TransactionAuditState stateOf(Transaction transaction) {
         return new TransactionAuditState(
-                transaction.categoryId(), transaction.amount(), transaction.currency(), transaction.exchangeRateToBase(),
-                transaction.transactionDate(), transaction.description(), transaction.transactionType()
+                transaction.categoryId(),
+                transaction.amount(),
+                transaction.currency(),
+                transaction.exchangeRateToBase(),
+                transaction.transactionDate(),
+                transaction.description(),
+                transaction.transactionType()
         );
     }
 }

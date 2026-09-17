@@ -10,9 +10,14 @@ import org.springframework.data.domain.Pageable;
 import ru.otus.financetracker.domain.recurring.RecurringTransaction;
 
 public interface RecurringTransactionRepository {
+
     RecurringTransaction save(RecurringTransaction recurringTransaction);
+
     Optional<RecurringTransaction> findByIdAndUserId(UUID id, UUID userId);
+
     Page<RecurringTransaction> findAllByUserId(UUID userId, Pageable pageable);
+
     List<RecurringTransaction> findActiveDueOnOrBefore(LocalDate date);
+
     void delete(RecurringTransaction recurringTransaction);
 }

@@ -16,8 +16,8 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import ru.otus.financetracker.application.categories.CategoryRepository;
 import ru.otus.financetracker.application.audit.TransactionAuditService;
+import ru.otus.financetracker.application.categories.CategoryRepository;
 import ru.otus.financetracker.domain.categories.Category;
 import ru.otus.financetracker.domain.categories.TransactionType;
 import ru.otus.financetracker.domain.transactions.Transaction;
@@ -28,7 +28,10 @@ class TransactionServiceTests {
     private final TransactionRepository transactionRepository = mock(TransactionRepository.class);
     private final CategoryRepository categoryRepository = mock(CategoryRepository.class);
     private final TransactionAuditService transactionAuditService = mock(TransactionAuditService.class);
-    private final Clock clock = Clock.fixed(Instant.parse("2026-09-16T12:00:00Z"), ZoneOffset.UTC);
+    private final Clock clock = Clock.fixed(
+            Instant.parse("2026-09-16T12:00:00Z"),
+            ZoneOffset.UTC
+    );
     private final TransactionService service = new TransactionService(
             transactionRepository, categoryRepository, transactionAuditService, clock
     );
@@ -37,9 +40,18 @@ class TransactionServiceTests {
     void shouldCreateTransactionWithFixedExchangeRateForOwnedMatchingCategory() {
         UUID userId = UUID.randomUUID();
         UUID categoryId = UUID.randomUUID();
-        var command = new CreateTransactionCommand(categoryId, new BigDecimal("12.3400"), "EUR",
-                new BigDecimal("1.08500000"), LocalDate.of(2026, 9, 16), " Groceries ", TransactionType.EXPENSE);
-        when(categoryRepository.findByIdAndUserId(categoryId, userId)).thenReturn(Optional.of(category(userId, categoryId)));
+        var command = new CreateTransactionCommand(
+                categoryId,
+                new BigDecimal("12.3400"),
+                "EUR",
+                new BigDecimal("1.08500000"),
+                LocalDate.of(2026, 9, 16),
+                " Groceries ",
+                TransactionType.EXPENSE
+        );
+        when(categoryRepository.findByIdAndUserId(categoryId, userId)).thenReturn(
+                Optional.of(category(userId, categoryId))
+        );
         when(transactionRepository.save(org.mockito.ArgumentMatchers.any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -57,7 +69,9 @@ class TransactionServiceTests {
     void shouldRejectTransactionWhenCategoryTypeDiffersFromTransactionType() {
         UUID userId = UUID.randomUUID();
         UUID categoryId = UUID.randomUUID();
-        when(categoryRepository.findByIdAndUserId(categoryId, userId)).thenReturn(Optional.of(category(userId, categoryId)));
+        when(categoryRepository.findByIdAndUserId(categoryId, userId)).thenReturn(
+                Optional.of(category(userId, categoryId))
+        );
 
         assertThatThrownBy(() -> service.create(userId, command(categoryId, TransactionType.INCOME)))
                 .isInstanceOf(TransactionCategoryTypeMismatchException.class);
@@ -75,11 +89,28 @@ class TransactionServiceTests {
 
     private Category category(UUID userId, UUID categoryId) {
         Instant now = clock.instant();
-        return new Category(categoryId, userId, "Food", TransactionType.EXPENSE, "utensils", "#0A1B2C", now, now, 0);
+        return new Category(
+                categoryId,
+                userId,
+                "Food",
+                TransactionType.EXPENSE,
+                "utensils",
+                "#0A1B2C",
+                now,
+                now,
+                0
+        );
     }
 
     private CreateTransactionCommand command(UUID categoryId, TransactionType transactionType) {
-        return new CreateTransactionCommand(categoryId, new BigDecimal("12.3400"), "EUR", new BigDecimal("1.08500000"),
-                LocalDate.of(2026, 9, 16), "Groceries", transactionType);
+        return new CreateTransactionCommand(
+                categoryId,
+                new BigDecimal("12.3400"),
+                "EUR",
+                new BigDecimal("1.08500000"),
+                LocalDate.of(2026, 9, 16),
+                "Groceries",
+                transactionType
+        );
     }
 }

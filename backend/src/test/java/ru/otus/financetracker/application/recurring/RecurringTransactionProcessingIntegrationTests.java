@@ -89,12 +89,16 @@ class RecurringTransactionProcessingIntegrationTests {
         recurringTransactionService.createDueOccurrences(DUE_DATE);
 
         UUID transactionId = jdbcTemplate.queryForObject(
-                "SELECT id FROM transactions WHERE recurring_transaction_id = ?", UUID.class, ruleId
+                "SELECT id FROM transactions WHERE recurring_transaction_id = ?",
+                UUID.class,
+                ruleId
         );
         transactionService.delete(references.userId(), transactionId, 0);
 
         assertThat(count("SELECT COUNT(*) FROM transactions WHERE id = ?", transactionId)).isZero();
-        assertThat(count("SELECT COUNT(*) FROM recurring_transaction_occurrences WHERE transaction_id = ?", transactionId)).isZero();
+        assertThat(
+                count("SELECT COUNT(*) FROM recurring_transaction_occurrences WHERE transaction_id = ?", transactionId)
+        ).isZero();
     }
 
     @Test
@@ -115,13 +119,20 @@ class RecurringTransactionProcessingIntegrationTests {
         }
 
         assertThat(count("SELECT COUNT(*) FROM transactions WHERE recurring_transaction_id = ?", ruleId)).isEqualTo(1);
-        assertThat(count("SELECT COUNT(*) FROM recurring_transaction_occurrences WHERE recurring_transaction_id = ?", ruleId)).isEqualTo(1);
+        assertThat(
+                count("SELECT COUNT(*) FROM recurring_transaction_occurrences WHERE recurring_transaction_id = ?", ruleId)
+        ).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT next_occurrence_date FROM recurring_transactions WHERE id = ?", LocalDate.class, ruleId
+                "SELECT next_occurrence_date FROM recurring_transactions WHERE id = ?",
+                LocalDate.class,
+                ruleId
         )).isEqualTo(LocalDate.of(2026, 3, 31));
     }
 
-    private void processDueOccurrencesInSeparateTransaction(CountDownLatch ready, CountDownLatch start) {
+    private void processDueOccurrencesInSeparateTransaction(
+            CountDownLatch ready,
+            CountDownLatch start
+    ) {
         transactionTemplate.executeWithoutResult(status -> {
             ready.countDown();
             try {
@@ -139,10 +150,23 @@ class RecurringTransactionProcessingIntegrationTests {
     private References insertReferences() {
         UUID userId = UUID.randomUUID();
         UUID categoryId = UUID.randomUUID();
-        jdbcTemplate.update("INSERT INTO users (id, email, password_hash, display_name, base_currency) VALUES (?, ?, ?, ?, ?)",
-                userId, userId + "@example.test", "hash", "Test", "USD");
-        jdbcTemplate.update("INSERT INTO categories (id, user_id, name, transaction_type, icon, color) VALUES (?, ?, ?, ?, ?, ?)",
-                categoryId, userId, "Food", "EXPENSE", "icon", "#0A1B2C");
+        jdbcTemplate.update(
+                "INSERT INTO users (id, email, password_hash, display_name, base_currency) VALUES (?, ?, ?, ?, ?)",
+                userId,
+                userId + "@example.test",
+                "hash",
+                "Test",
+                "USD"
+        );
+        jdbcTemplate.update(
+                "INSERT INTO categories (id, user_id, name, transaction_type, icon, color) VALUES (?, ?, ?, ?, ?, ?)",
+                categoryId,
+                userId,
+                "Food",
+                "EXPENSE",
+                "icon",
+                "#0A1B2C"
+        );
         return new References(userId, categoryId);
     }
 
@@ -152,9 +176,19 @@ class RecurringTransactionProcessingIntegrationTests {
                 INSERT INTO recurring_transactions (id, user_id, category_id, category_transaction_type, amount, currency,
                     exchange_rate_to_base, transaction_type, day_of_month, start_date, next_occurrence_date)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, ruleId, references.userId(), references.categoryId(), TransactionType.EXPENSE.name(),
-                new BigDecimal("10.0000"), "USD", new BigDecimal("1.00000000"), TransactionType.EXPENSE.name(), 31,
-                LocalDate.of(2026, 1, 31), DUE_DATE);
+                """,
+                ruleId,
+                references.userId(),
+                references.categoryId(),
+                TransactionType.EXPENSE.name(),
+                new BigDecimal("10.0000"),
+                "USD",
+                new BigDecimal("1.00000000"),
+                TransactionType.EXPENSE.name(),
+                31,
+                LocalDate.of(2026, 1, 31),
+                DUE_DATE
+        );
         return ruleId;
     }
 
@@ -162,8 +196,7 @@ class RecurringTransactionProcessingIntegrationTests {
         return jdbcTemplate.queryForObject(sql, Integer.class, id);
     }
 
-    private record References(UUID userId, UUID categoryId) {
-    }
+    private record References(UUID userId, UUID categoryId) {}
 
     @TestConfiguration(proxyBeanMethods = false)
     static class FixedClockConfiguration {

@@ -1,11 +1,11 @@
 package ru.otus.financetracker.api.transactions;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,11 +17,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -43,7 +43,9 @@ import org.testcontainers.utility.DockerImageName;
 class TransactionControllerIntegrationTests {
 
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
+            DockerImageName.parse("postgres:18-alpine")
+    );
 
     @Autowired
     private MockMvc mockMvc;
@@ -377,7 +379,10 @@ class TransactionControllerIntegrationTests {
                 .isEqualTo(java.util.List.of(firstId, secondId).stream().sorted().findFirst().orElseThrow());
         org.assertj.core.api.Assertions.assertThat(orderedIds.get(1).get("id").asText())
                 .isEqualTo(java.util.List.of(firstId, secondId).stream().sorted().skip(1).findFirst().orElseThrow());
-        mockMvc.perform(get("/api/v1/transactions?size=101").header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+            get("/api/v1/transactions?size=101")
+                .header("Authorization", "Bearer " + token)
+        )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
@@ -394,7 +399,10 @@ class TransactionControllerIntegrationTests {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
-        mockMvc.perform(get("/api/v1/transactions?sort=userId,asc").header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+            get("/api/v1/transactions?sort=userId,asc")
+                .header("Authorization", "Bearer " + token)
+        )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
@@ -628,7 +636,9 @@ class TransactionControllerIntegrationTests {
     }
 
     private org.springframework.test.web.servlet.ResultActions export(String url, String token) throws Exception {
-        var result = mockMvc.perform(get(url).header("Authorization", "Bearer " + token))
+        var result = mockMvc.perform(
+            get(url).header("Authorization", "Bearer " + token)
+        )
                 .andExpect(request().asyncStarted())
                 .andReturn();
         return mockMvc.perform(asyncDispatch(result));

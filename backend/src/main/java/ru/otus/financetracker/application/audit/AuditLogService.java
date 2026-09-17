@@ -10,6 +10,7 @@ import ru.otus.financetracker.domain.audit.AuditLogEntry;
 
 @Service
 public class AuditLogService {
+
     private final AuditLogRepository auditLogRepository;
 
     public AuditLogService(AuditLogRepository auditLogRepository) {
@@ -17,7 +18,17 @@ public class AuditLogService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AuditLogEntry> list(UUID actorUserId, String entityType, UUID entityId, Pageable pageable) {
-        return auditLogRepository.findAllByActorUserIdAndEntityType(actorUserId, entityType, entityId, pageable);
+    public Page<AuditLogEntry> list(
+            UUID actorUserId,
+            String entityType,
+            UUID entityId,
+            Pageable pageable
+    ) {
+        return auditLogRepository.findAllByActorUserIdAndEntityType(
+                actorUserId,
+                entityType,
+                entityId,
+                pageable
+        );
     }
 }

@@ -42,13 +42,26 @@ class SyntheticDemoDataMigrationTests {
 
     @Test
     void shouldCreateRequiredSyntheticDemoData() {
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM users", Integer.class)).isEqualTo(2);
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM categories", Integer.class)).isEqualTo(12);
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM budgets", Integer.class)).isEqualTo(3);
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM transactions", Integer.class)).isGreaterThanOrEqualTo(200);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM users",
+                Integer.class
+        )).isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM categories",
+                Integer.class
+        )).isEqualTo(12);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM budgets",
+                Integer.class
+        )).isEqualTo(3);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM transactions",
+                Integer.class
+        )).isGreaterThanOrEqualTo(200);
 
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT count(DISTINCT date_trunc('month', transaction_date)) FROM transactions", Integer.class
+                "SELECT count(DISTINCT date_trunc('month', transaction_date)) FROM transactions",
+                Integer.class
         )).isEqualTo(6);
     }
 }

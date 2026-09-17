@@ -23,8 +23,12 @@ public class TransactionService {
     private final TransactionAuditService transactionAuditService;
     private final Clock clock;
 
-    public TransactionService(TransactionRepository transactionRepository, CategoryRepository categoryRepository,
-                               TransactionAuditService transactionAuditService, Clock clock) {
+    public TransactionService(
+            TransactionRepository transactionRepository,
+            CategoryRepository categoryRepository,
+            TransactionAuditService transactionAuditService,
+            Clock clock
+    ) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
         this.transactionAuditService = transactionAuditService;
@@ -41,7 +45,9 @@ public class TransactionService {
         for (CreateTransactionCommand command : commands) {
             validateCategory(userId, command);
         }
-        return commands.stream().map(command -> createValidated(userId, command)).toList();
+        return commands.stream()
+                .map(command -> createValidated(userId, command))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -56,22 +62,34 @@ public class TransactionService {
             throw new OptimisticLockingFailureException("Transaction has been modified.");
         }
 
-        var category = command.categoryId() == null
-                ? categoryRepository.findByIdAndUserId(transaction.categoryId(), userId).orElseThrow(ResourceNotFoundException::new)
-                : categoryRepository.findByIdAndUserId(command.categoryId(), userId).orElseThrow(ResourceNotFoundException::new);
-        var transactionType = command.transactionType() == null ? transaction.transactionType() : command.transactionType();
+        var categoryId = command.categoryId() == null
+                ? transaction.categoryId()
+                : command.categoryId();
+        var category = categoryRepository.findByIdAndUserId(categoryId, userId)
+                .orElseThrow(ResourceNotFoundException::new);
+        var transactionType = command.transactionType() == null
+                ? transaction.transactionType()
+                : command.transactionType();
         if (category.transactionType() != transactionType) {
             throw new TransactionCategoryTypeMismatchException();
         }
 
         var updatedTransaction = transactionRepository.save(new Transaction(
-                transaction.id(), transaction.userId(), category.id(),
+                transaction.id(),
+                transaction.userId(),
+                category.id(),
                 command.amount() == null ? transaction.amount() : command.amount(),
                 command.currency() == null ? transaction.currency() : command.currency(),
-                command.exchangeRateToBase() == null ? transaction.exchangeRateToBase() : command.exchangeRateToBase(),
+                command.exchangeRateToBase() == null
+                        ? transaction.exchangeRateToBase()
+                        : command.exchangeRateToBase(),
                 command.transactionDate() == null ? transaction.transactionDate() : command.transactionDate(),
-                command.description() == null ? transaction.description() : command.description().strip(), transactionType, transaction.recurringTransactionId(),
-                transaction.createdAt(), clock.instant(), transaction.version()
+                command.description() == null ? transaction.description() : command.description().strip(),
+                transactionType,
+                transaction.recurringTransactionId(),
+                transaction.createdAt(),
+                clock.instant(),
+                transaction.version()
         ));
         transactionAuditService.recordUpdate(userId, transaction, updatedTransaction);
         return updatedTransaction;
@@ -99,7 +117,12 @@ public class TransactionService {
     }
 
     @Transactional(readOnly = true)
-    public List<Transaction> exportChunk(UUID userId, TransactionFilter filter, TransactionExportCursor cursor, int chunkSize) {
+    public List<Transaction> exportChunk(
+            UUID userId,
+            TransactionFilter filter,
+            TransactionExportCursor cursor,
+            int chunkSize
+    ) {
         return transactionRepository.findExportChunkByUserId(userId, filter, cursor, chunkSize);
     }
 
@@ -112,10 +135,14 @@ public class TransactionService {
     }
 
     private void validateFilter(TransactionFilter filter) {
-        if (filter.fromDate() != null && filter.toDate() != null && filter.fromDate().isAfter(filter.toDate())) {
+        if (filter.fromDate() != null
+                && filter.toDate() != null
+                && filter.fromDate().isAfter(filter.toDate())) {
             throw new InvalidTransactionFilterException();
         }
-        if (filter.minAmount() != null && filter.maxAmount() != null && filter.minAmount().compareTo(filter.maxAmount()) > 0) {
+        if (filter.minAmount() != null
+                && filter.maxAmount() != null
+                && filter.minAmount().compareTo(filter.maxAmount()) > 0) {
             throw new InvalidTransactionFilterException();
         }
     }
@@ -129,9 +156,19 @@ public class TransactionService {
         validateCategory(userId, command);
         Instant now = clock.instant();
         var transaction = transactionRepository.save(new Transaction(
-                UUID.randomUUID(), userId, command.categoryId(), command.amount(), command.currency(), command.exchangeRateToBase(),
-                command.transactionDate(), command.description() == null ? null : command.description().strip(),
-                command.transactionType(), null, now, now, 0
+                UUID.randomUUID(),
+                userId,
+                command.categoryId(),
+                command.amount(),
+                command.currency(),
+                command.exchangeRateToBase(),
+                command.transactionDate(),
+                command.description() == null ? null : command.description().strip(),
+                command.transactionType(),
+                null,
+                now,
+                now,
+                0
         ));
         transactionAuditService.recordCreate(userId, transaction);
         return transaction;

@@ -28,27 +28,40 @@ class AuthenticationRateLimiterTests {
         clock.setInstant(initialTime.plus(Duration.ofMinutes(2)));
 
         assertThatCode(() -> limiter.check("198.51.100.1", "new@example.test"))
-                .doesNotThrowAnyException();
+            .doesNotThrowAnyException();
     }
 
     @Test
     void shouldRejectAuthenticationAfterMaximumAttempts() {
-        var limiter = new AuthenticationRateLimiter(Clock.fixed(Instant.parse("2026-09-16T12:00:00Z"), ZoneOffset.UTC), properties());
+        var limiter = new AuthenticationRateLimiter(
+            Clock.fixed(Instant.parse("2026-09-16T12:00:00Z"), ZoneOffset.UTC),
+            properties()
+        );
 
         limiter.check("192.0.2.1", "person@example.test");
         limiter.check("192.0.2.1", "person@example.test");
 
         assertThatThrownBy(() -> limiter.check("192.0.2.1", "person@example.test"))
-                .isInstanceOf(AuthenticationRateLimitExceededException.class);
+            .isInstanceOf(AuthenticationRateLimitExceededException.class);
     }
 
     private ApplicationProperties properties() {
         return new ApplicationProperties(
                 ZoneOffset.UTC,
-                new ApplicationProperties.Jwt("https://issuer.test", "finance-tracker-test",
-                        "test-signing-secret-with-at-least-32-characters", Duration.ofMinutes(15)),
+                new ApplicationProperties.Jwt(
+                    "https://issuer.test",
+                    "finance-tracker-test",
+                    "test-signing-secret-with-at-least-32-characters",
+                    Duration.ofMinutes(15)
+                ),
                 new ApplicationProperties.Cors(List.of("https://frontend.test")),
-                new ApplicationProperties.Limits(DataSize.ofMegabytes(1), DataSize.ofKilobytes(512), 100, 2, Duration.ofMinutes(1))
+                new ApplicationProperties.Limits(
+                    DataSize.ofMegabytes(1),
+                    DataSize.ofKilobytes(512),
+                    100,
+                    2,
+                    Duration.ofMinutes(1)
+                )
         );
     }
 

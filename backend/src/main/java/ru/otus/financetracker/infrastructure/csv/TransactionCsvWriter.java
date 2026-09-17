@@ -11,7 +11,13 @@ import ru.otus.financetracker.domain.transactions.Transaction;
 public class TransactionCsvWriter {
 
     private static final List<String> HEADER = List.of(
-            "categoryId", "amount", "currency", "exchangeRateToBase", "transactionDate", "description", "transactionType"
+            "categoryId",
+            "amount",
+            "currency",
+            "exchangeRateToBase",
+            "transactionDate",
+            "description",
+            "transactionType"
     );
 
     public void writeHeader(Writer writer) throws IOException {

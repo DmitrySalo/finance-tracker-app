@@ -51,8 +51,19 @@ class TransactionsSchemaMigrationTests {
                         + "AND table_name = 'transactions'",
                 String.class
         )).containsExactlyInAnyOrder(
-                "id", "user_id", "category_id", "amount", "currency", "exchange_rate_to_base", "transaction_date",
-                "description", "transaction_type", "recurring_transaction_id", "created_at", "updated_at", "version"
+                "id",
+                "user_id",
+                "category_id",
+                "amount",
+                "currency",
+                "exchange_rate_to_base",
+                "transaction_date",
+                "description",
+                "transaction_type",
+                "recurring_transaction_id",
+                "created_at",
+                "updated_at",
+                "version"
         );
         assertThat(indexDefinition("idx_transactions_user_transaction_date_id"))
                 .contains("user_id, transaction_date DESC, id DESC");
@@ -64,45 +75,76 @@ class TransactionsSchemaMigrationTests {
     void shouldRejectNonPositiveTransactionAmount() {
         var transactionReferences = insertTransactionReferences();
 
-        assertThatThrownBy(() -> insertTransaction(transactionReferences, new BigDecimal("0.0000"), new BigDecimal("1.00000000")))
-                .hasStackTraceContaining("chk_transactions_amount_positive");
+        assertThatThrownBy(
+                () -> insertTransaction(
+                        transactionReferences,
+                        new BigDecimal("0.0000"),
+                        new BigDecimal("1.00000000")
+                )
+        ).hasStackTraceContaining("chk_transactions_amount_positive");
     }
 
     @Test
     void shouldRejectNonPositiveExchangeRate() {
         var transactionReferences = insertTransactionReferences();
 
-        assertThatThrownBy(() -> insertTransaction(transactionReferences, new BigDecimal("1.0000"), new BigDecimal("0.00000000")))
-                .hasStackTraceContaining("chk_transactions_exchange_rate_to_base_positive");
+        assertThatThrownBy(
+                () -> insertTransaction(
+                        transactionReferences,
+                        new BigDecimal("1.0000"),
+                        new BigDecimal("0.00000000")
+                )
+        ).hasStackTraceContaining("chk_transactions_exchange_rate_to_base_positive");
     }
 
     @Test
     void shouldRejectInvalidCurrency() {
         var transactionReferences = insertTransactionReferences();
 
-        assertThatThrownBy(() -> insertTransaction(transactionReferences, new BigDecimal("1.0000"),
-                new BigDecimal("1.00000000"), "usd", "EXPENSE"))
-                .hasStackTraceContaining("chk_transactions_currency_format");
+        assertThatThrownBy(
+                () -> insertTransaction(
+                        transactionReferences,
+                        new BigDecimal("1.0000"),
+                        new BigDecimal("1.00000000"),
+                        "usd",
+                        "EXPENSE"
+                )
+        ).hasStackTraceContaining("chk_transactions_currency_format");
     }
 
     @Test
     void shouldRejectInvalidTransactionType() {
         var transactionReferences = insertTransactionReferences();
 
-        assertThatThrownBy(() -> insertTransaction(transactionReferences, new BigDecimal("1.0000"),
-                new BigDecimal("1.00000000"), "USD", "OTHER"))
-                .hasStackTraceContaining("chk_transactions_transaction_type");
+        assertThatThrownBy(
+                () -> insertTransaction(
+                        transactionReferences,
+                        new BigDecimal("1.0000"),
+                        new BigDecimal("1.00000000"),
+                        "USD",
+                        "OTHER"
+                )
+        ).hasStackTraceContaining("chk_transactions_transaction_type");
     }
 
     @Test
     void shouldRejectTransactionWithUnknownUserOrCategory() {
         var transactionReferences = insertTransactionReferences();
 
-        assertThatThrownBy(() -> insertTransaction(new TransactionReferences(UUID.randomUUID(), transactionReferences.categoryId()),
-                new BigDecimal("1.0000"), new BigDecimal("1.00000000"))).hasStackTraceContaining("fk_transactions_user");
-        assertThatThrownBy(() -> insertTransaction(new TransactionReferences(transactionReferences.userId(), UUID.randomUUID()),
-                new BigDecimal("1.0000"), new BigDecimal("1.00000000")))
-                .hasStackTraceContaining("fk_transactions_category_owner_and_type");
+        assertThatThrownBy(
+                () -> insertTransaction(
+                        new TransactionReferences(UUID.randomUUID(), transactionReferences.categoryId()),
+                        new BigDecimal("1.0000"),
+                        new BigDecimal("1.00000000")
+                )
+        ).hasStackTraceContaining("fk_transactions_user");
+        assertThatThrownBy(
+                () -> insertTransaction(
+                        new TransactionReferences(transactionReferences.userId(), UUID.randomUUID()),
+                        new BigDecimal("1.0000"),
+                        new BigDecimal("1.00000000")
+                )
+        ).hasStackTraceContaining("fk_transactions_category_owner_and_type");
     }
 
     @Test
@@ -112,14 +154,20 @@ class TransactionsSchemaMigrationTests {
         var incomeCategoryId = insertCategory(transactionReferences.userId(), "Salary", "INCOME");
         var otherUserCategoryId = insertCategory(otherUserId, "Transport", "EXPENSE");
 
-        assertThatThrownBy(() -> insertTransaction(
-                new TransactionReferences(transactionReferences.userId(), otherUserCategoryId),
-                new BigDecimal("1.0000"), new BigDecimal("1.00000000")
-        )).hasStackTraceContaining("fk_transactions_category_owner_and_type");
-        assertThatThrownBy(() -> insertTransaction(
-                new TransactionReferences(transactionReferences.userId(), incomeCategoryId),
-                new BigDecimal("1.0000"), new BigDecimal("1.00000000")
-        )).hasStackTraceContaining("fk_transactions_category_owner_and_type");
+        assertThatThrownBy(
+                () -> insertTransaction(
+                        new TransactionReferences(transactionReferences.userId(), otherUserCategoryId),
+                        new BigDecimal("1.0000"),
+                        new BigDecimal("1.00000000")
+                )
+        ).hasStackTraceContaining("fk_transactions_category_owner_and_type");
+        assertThatThrownBy(
+                () -> insertTransaction(
+                        new TransactionReferences(transactionReferences.userId(), incomeCategoryId),
+                        new BigDecimal("1.0000"),
+                        new BigDecimal("1.00000000")
+                )
+        ).hasStackTraceContaining("fk_transactions_category_owner_and_type");
     }
 
     private String indexDefinition(String indexName) {
@@ -147,8 +195,11 @@ class TransactionsSchemaMigrationTests {
     private void insertUser(UUID userId) {
         jdbcTemplate.update(
                 "INSERT INTO users (id, email, password_hash, display_name, base_currency) VALUES (?, ?, ?, ?, ?)",
-                userId, userId + "@example.test", "$2a$10$abcdefghijklmnopqrstuvabcdefghijklmnopqrstuvabcdefghijklmn",
-                "Test user", "USD"
+                userId,
+                userId + "@example.test",
+                "$2a$10$abcdefghijklmnopqrstuvabcdefghijklmnopqrstuvabcdefghijklmn",
+                "Test user",
+                "USD"
         );
     }
 
@@ -156,22 +207,42 @@ class TransactionsSchemaMigrationTests {
         var categoryId = UUID.randomUUID();
         jdbcTemplate.update(
                 "INSERT INTO categories (id, user_id, name, transaction_type, icon, color) VALUES (?, ?, ?, ?, ?, ?)",
-                categoryId, userId, name, transactionType, "utensils", "#0A1B2C"
+                categoryId,
+                userId,
+                name,
+                transactionType,
+                "utensils",
+                "#0A1B2C"
         );
         return categoryId;
     }
 
-    private void insertTransaction(TransactionReferences transactionReferences, BigDecimal amount, BigDecimal exchangeRateToBase) {
+    private void insertTransaction(
+            TransactionReferences transactionReferences,
+            BigDecimal amount,
+            BigDecimal exchangeRateToBase
+    ) {
         insertTransaction(transactionReferences, amount, exchangeRateToBase, "USD", "EXPENSE");
     }
 
-    private void insertTransaction(TransactionReferences transactionReferences, BigDecimal amount, BigDecimal exchangeRateToBase,
-                                   String currency, String transactionType) {
+    private void insertTransaction(
+            TransactionReferences transactionReferences,
+            BigDecimal amount,
+            BigDecimal exchangeRateToBase,
+            String currency,
+            String transactionType
+    ) {
         jdbcTemplate.update(
                 "INSERT INTO transactions (id, user_id, category_id, amount, currency, exchange_rate_to_base, "
                         + "transaction_date, transaction_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                UUID.randomUUID(), transactionReferences.userId(), transactionReferences.categoryId(), amount, currency,
-                exchangeRateToBase, LocalDate.of(2026, 9, 16), transactionType
+                UUID.randomUUID(),
+                transactionReferences.userId(),
+                transactionReferences.categoryId(),
+                amount,
+                currency,
+                exchangeRateToBase,
+                LocalDate.of(2026, 9, 16),
+                transactionType
         );
     }
 

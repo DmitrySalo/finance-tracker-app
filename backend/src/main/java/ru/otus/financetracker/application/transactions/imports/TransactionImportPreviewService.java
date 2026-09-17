@@ -31,17 +31,34 @@ import ru.otus.financetracker.infrastructure.csv.CsvRecordReader;
 public class TransactionImportPreviewService {
 
     private static final Set<String> REQUIRED_COLUMNS = Set.of(
-            "categoryId", "amount", "currency", "exchangeRateToBase", "transactionDate", "transactionType");
+            "categoryId",
+            "amount",
+            "currency",
+            "exchangeRateToBase",
+            "transactionDate",
+            "transactionType"
+    );
     private static final Set<String> ALLOWED_COLUMNS = Set.of(
-            "categoryId", "amount", "currency", "exchangeRateToBase", "transactionDate", "description", "transactionType");
+            "categoryId",
+            "amount",
+            "currency",
+            "exchangeRateToBase",
+            "transactionDate",
+            "description",
+            "transactionType"
+    );
 
     private final CsvRecordReader csvRecordReader;
     private final CategoryRepository categoryRepository;
     private final ApplicationProperties applicationProperties;
     private final TransactionService transactionService;
 
-    public TransactionImportPreviewService(CsvRecordReader csvRecordReader, CategoryRepository categoryRepository,
-                                           ApplicationProperties applicationProperties, TransactionService transactionService) {
+    public TransactionImportPreviewService(
+            CsvRecordReader csvRecordReader,
+            CategoryRepository categoryRepository,
+            ApplicationProperties applicationProperties,
+            TransactionService transactionService
+    ) {
         this.csvRecordReader = csvRecordReader;
         this.categoryRepository = categoryRepository;
         this.applicationProperties = applicationProperties;
@@ -50,8 +67,12 @@ public class TransactionImportPreviewService {
 
     public TransactionImportPreview preview(UUID userId, MultipartFile file, Map<String, String> columns) {
         validateFile(file);
-        try (var input = new PushbackReader(new BufferedReader(
-                new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)), 1)) {
+        try (var input = new PushbackReader(
+                new BufferedReader(
+                        new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)
+                ),
+                1
+        )) {
             CsvRecord header = csvRecordReader.readRecord(input, 1);
             if (header == null) {
                 throw invalid("file", "REQUIRED", "CSV file must contain a header.");
@@ -67,23 +88,37 @@ public class TransactionImportPreviewService {
         TransactionImportPreview preview = preview(userId, file, columns);
         if (!preview.lineErrors().isEmpty()) {
             throw new CsvImportValidationException(preview.lineErrors().stream()
-                    .map(error -> new ImportValidationViolation("rows[" + error.lineNumber() + "]." + error.field(),
-                            error.code(), error.message()))
+                    .map(error -> new ImportValidationViolation(
+                            "rows[" + error.lineNumber() + "]." + error.field(),
+                            error.code(),
+                            error.message()
+                    ))
                     .toList());
         }
-        return transactionService.createAll(userId, preview.rows().stream().map(this::toCreateCommand).toList()).size();
+        return transactionService.createAll(
+                userId,
+                preview.rows().stream().map(this::toCreateCommand).toList()
+        ).size();
     }
 
     private CreateTransactionCommand toCreateCommand(TransactionImportPreview.Row row) {
         return new CreateTransactionCommand(
-                UUID.fromString(row.categoryId()), new BigDecimal(row.amount()), row.currency(),
-                new BigDecimal(row.exchangeRateToBase()), LocalDate.parse(row.transactionDate()), row.description(),
+                UUID.fromString(row.categoryId()),
+                new BigDecimal(row.amount()),
+                row.currency(),
+                new BigDecimal(row.exchangeRateToBase()),
+                LocalDate.parse(row.transactionDate()),
+                row.description(),
                 TransactionType.valueOf(row.transactionType())
         );
     }
 
-    private TransactionImportPreview previewRows(UUID userId, PushbackReader reader, int nextLine, Map<String, Integer> mapping)
-            throws IOException {
+    private TransactionImportPreview previewRows(
+            UUID userId,
+            PushbackReader reader,
+            int nextLine,
+            Map<String, Integer> mapping
+    ) throws IOException {
         List<TransactionImportPreview.Row> rows = new ArrayList<>();
         List<TransactionImportPreview.LineError> errors = new ArrayList<>();
         int rowCount = 0;
@@ -94,9 +129,16 @@ public class TransactionImportPreviewService {
             }
             nextLine = record.endLineNumber() + 1;
             Map<String, String> values = values(record, mapping);
-            rows.add(new TransactionImportPreview.Row(record.lineNumber(), values.get("categoryId"), values.get("amount"),
-                    values.get("currency"), values.get("exchangeRateToBase"), values.get("transactionDate"),
-                    values.get("description"), values.get("transactionType")));
+            rows.add(new TransactionImportPreview.Row(
+                    record.lineNumber(),
+                    values.get("categoryId"),
+                    values.get("amount"),
+                    values.get("currency"),
+                    values.get("exchangeRateToBase"),
+                    values.get("transactionDate"),
+                    values.get("description"),
+                    values.get("transactionType")
+            ));
             validate(userId, record.lineNumber(), values, errors);
         }
         return new TransactionImportPreview(List.copyOf(rows), List.copyOf(errors));
@@ -112,7 +154,9 @@ public class TransactionImportPreviewService {
     }
 
     private Map<String, Integer> validateMapping(Map<String, String> columns, List<String> header) {
-        if (columns == null || columns.isEmpty() || !ALLOWED_COLUMNS.containsAll(columns.keySet())
+        if (columns == null
+                || columns.isEmpty()
+                || !ALLOWED_COLUMNS.containsAll(columns.keySet())
                 || !columns.keySet().containsAll(REQUIRED_COLUMNS)) {
             throw invalid("mapping", "INVALID", "Column mapping is invalid.");
         }
@@ -126,7 +170,10 @@ public class TransactionImportPreviewService {
         Set<String> usedHeaders = new HashSet<>();
         for (var entry : columns.entrySet()) {
             Integer index = sourceColumns.get(entry.getValue());
-            if (entry.getValue() == null || entry.getValue().isBlank() || index == null || !usedHeaders.add(entry.getValue())) {
+            if (entry.getValue() == null
+                    || entry.getValue().isBlank()
+                    || index == null
+                    || !usedHeaders.add(entry.getValue())) {
                 throw invalid("mapping", "INVALID", "Column mapping is invalid.");
             }
             mapping.put(entry.getKey(), index);
@@ -137,64 +184,133 @@ public class TransactionImportPreviewService {
     private Map<String, String> values(CsvRecord record, Map<String, Integer> mapping) {
         Map<String, String> values = new HashMap<>();
         for (var entry : mapping.entrySet()) {
-            values.put(entry.getKey(), entry.getValue() < record.values().size() ? record.values().get(entry.getValue()) : "");
+            values.put(
+                    entry.getKey(),
+                    entry.getValue() < record.values().size() ? record.values().get(entry.getValue()) : ""
+            );
         }
         return values;
     }
 
-    private void validate(UUID userId, int lineNumber, Map<String, String> values, List<TransactionImportPreview.LineError> errors) {
-        validateCategory(userId, lineNumber, values.get("categoryId"), values.get("transactionType"), errors);
+    private void validate(
+            UUID userId,
+            int lineNumber,
+            Map<String, String> values,
+            List<TransactionImportPreview.LineError> errors
+    ) {
+        validateCategory(
+                userId,
+                lineNumber,
+                values.get("categoryId"),
+                values.get("transactionType"),
+                errors
+        );
         validateDecimal(lineNumber, "amount", values.get("amount"), 15, 4, errors);
         validateCurrency(lineNumber, values.get("currency"), errors);
         validateDecimal(lineNumber, "exchangeRateToBase", values.get("exchangeRateToBase"), 11, 8, errors);
         validateDate(lineNumber, values.get("transactionDate"), errors);
         validateType(lineNumber, values.get("transactionType"), errors);
         if (values.containsKey("description") && values.get("description").length() > 1000) {
-            addError(errors, lineNumber, "description", "SIZE", "Description must not exceed 1000 characters.");
+            addError(
+                    errors,
+                    lineNumber,
+                    "description",
+                    "SIZE",
+                    "Description must not exceed 1000 characters."
+            );
         }
     }
 
-    private void validateCategory(UUID userId, int lineNumber, String categoryId, String transactionType,
-                                  List<TransactionImportPreview.LineError> errors) {
+    private void validateCategory(
+            UUID userId,
+            int lineNumber,
+            String categoryId,
+            String transactionType,
+            List<TransactionImportPreview.LineError> errors
+    ) {
         try {
             UUID id = UUID.fromString(categoryId);
             categoryRepository.findByIdAndUserId(id, userId).ifPresentOrElse(category -> {
                 if (!category.transactionType().name().equals(transactionType)) {
                     addError(errors, lineNumber, "transactionType", "MISMATCH", "Transaction type must match category type.");
                 }
-            }, () -> addError(errors, lineNumber, "categoryId", "NOT_FOUND", "Category is unavailable."));
+            }, () -> addError(
+                    errors,
+                    lineNumber,
+                    "categoryId",
+                    "NOT_FOUND",
+                    "Category is unavailable."
+            ));
         } catch (IllegalArgumentException | NullPointerException exception) {
             addError(errors, lineNumber, "categoryId", "UUID", "Category ID must be a UUID.");
         }
     }
 
-    private void validateDecimal(int lineNumber, String field, String value, int integerDigits, int fractionDigits,
-                                 List<TransactionImportPreview.LineError> errors) {
+    private void validateDecimal(
+            int lineNumber,
+            String field,
+            String value,
+            int integerDigits,
+            int fractionDigits,
+            List<TransactionImportPreview.LineError> errors
+    ) {
         try {
             BigDecimal decimal = new BigDecimal(value);
-            if (decimal.signum() <= 0 || decimal.precision() - decimal.scale() > integerDigits || decimal.scale() > fractionDigits) {
+            if (decimal.signum() <= 0
+                    || decimal.precision() - decimal.scale() > integerDigits
+                    || decimal.scale() > fractionDigits) {
                 throw new NumberFormatException();
             }
         } catch (NumberFormatException | NullPointerException exception) {
-            addError(errors, lineNumber, field, "INVALID", "Must be a positive decimal with allowed precision.");
+            addError(
+                    errors,
+                    lineNumber,
+                    field,
+                    "INVALID",
+                    "Must be a positive decimal with allowed precision."
+            );
         }
     }
 
-    private void validateCurrency(int lineNumber, String value, List<TransactionImportPreview.LineError> errors) {
+    private void validateCurrency(
+            int lineNumber,
+            String value,
+            List<TransactionImportPreview.LineError> errors
+    ) {
         if (value == null || !value.matches("[A-Z]{3}")) {
-            addError(errors, lineNumber, "currency", "PATTERN", "Currency must be a three-letter uppercase code.");
+            addError(
+                    errors,
+                    lineNumber,
+                    "currency",
+                    "PATTERN",
+                    "Currency must be a three-letter uppercase code."
+            );
         }
     }
 
-    private void validateDate(int lineNumber, String value, List<TransactionImportPreview.LineError> errors) {
+    private void validateDate(
+            int lineNumber,
+            String value,
+            List<TransactionImportPreview.LineError> errors
+    ) {
         try {
             LocalDate.parse(value);
         } catch (DateTimeParseException | NullPointerException exception) {
-            addError(errors, lineNumber, "transactionDate", "DATE", "Transaction date must use YYYY-MM-DD.");
+            addError(
+                    errors,
+                    lineNumber,
+                    "transactionDate",
+                    "DATE",
+                    "Transaction date must use YYYY-MM-DD."
+            );
         }
     }
 
-    private void validateType(int lineNumber, String value, List<TransactionImportPreview.LineError> errors) {
+    private void validateType(
+            int lineNumber,
+            String value,
+            List<TransactionImportPreview.LineError> errors
+    ) {
         try {
             TransactionType.valueOf(value);
         } catch (IllegalArgumentException | NullPointerException exception) {
@@ -202,8 +318,13 @@ public class TransactionImportPreviewService {
         }
     }
 
-    private void addError(List<TransactionImportPreview.LineError> errors, int lineNumber, String field,
-                          String code, String message) {
+    private void addError(
+            List<TransactionImportPreview.LineError> errors,
+            int lineNumber,
+            String field,
+            String code,
+            String message
+    ) {
         errors.add(new TransactionImportPreview.LineError(lineNumber, field, code, message));
     }
 

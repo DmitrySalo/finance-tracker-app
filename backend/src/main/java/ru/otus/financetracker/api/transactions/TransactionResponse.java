@@ -23,9 +23,17 @@ public record TransactionResponse(
 ) {
     static TransactionResponse from(Transaction transaction) {
         return new TransactionResponse(
-                transaction.id(), transaction.categoryId(), transaction.amount(), transaction.currency(),
-                transaction.exchangeRateToBase(), transaction.transactionDate(), transaction.description(),
-                transaction.transactionType(), transaction.createdAt(), transaction.updatedAt(), transaction.version()
+                transaction.id(),
+                transaction.categoryId(),
+                transaction.amount(),
+                transaction.currency(),
+                transaction.exchangeRateToBase(),
+                transaction.transactionDate(),
+                transaction.description(),
+                transaction.transactionType(),
+                transaction.createdAt(),
+                transaction.updatedAt(),
+                transaction.version()
         );
     }
 }

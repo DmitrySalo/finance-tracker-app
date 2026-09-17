@@ -82,24 +82,37 @@ class TransactionAuditIntegrationTests {
         UUID categoryId = insertTransactionReferences(actorUserId);
 
         var created = transactionService.create(actorUserId, createCommand(categoryId));
-        var updated = transactionService.update(actorUserId, created.id(), new UpdateTransactionCommand(
-                created.version(), null, new BigDecimal("22.2200"), "USD", new BigDecimal("1.00000000"),
-                LocalDate.of(2026, 9, 17), " Dinner ", null
-        ));
+        var updated = transactionService.update(
+                actorUserId,
+                created.id(),
+                new UpdateTransactionCommand(
+                        created.version(),
+                        null,
+                        new BigDecimal("22.2200"),
+                        "USD",
+                        new BigDecimal("1.00000000"),
+                        LocalDate.of(2026, 9, 17),
+                        " Dinner ",
+                        null
+                )
+        );
         transactionService.delete(actorUserId, updated.id(), updated.version());
 
         List<AuditRow> auditRows = jdbcTemplate.query(
                 "SELECT actor_user_id, action, occurred_at, before_state::text, after_state::text "
                         + "FROM audit_logs WHERE entity_id = ? ORDER BY action",
                 (resultSet, rowNumber) -> new AuditRow(
-                        resultSet.getObject("actor_user_id", UUID.class), resultSet.getString("action"),
-                        resultSet.getObject("occurred_at", OffsetDateTime.class).toInstant(), resultSet.getString("before_state"),
+                        resultSet.getObject("actor_user_id", UUID.class),
+                        resultSet.getString("action"),
+                        resultSet.getObject("occurred_at", OffsetDateTime.class).toInstant(),
+                        resultSet.getString("before_state"),
                         resultSet.getString("after_state")
                 ),
                 created.id()
         );
 
         assertThat(auditRows).hasSize(3);
+
         AuditStateExpectation createdState = new AuditStateExpectation(
                 categoryId, "12.3400", "EUR", "1.08500000", "2026-09-16", "Groceries"
         );
@@ -117,17 +130,24 @@ class TransactionAuditIntegrationTests {
         UUID actorUserId = UUID.randomUUID();
         UUID categoryId = insertTransactionReferences(actorUserId);
 
-        assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> {
-            transactionService.create(actorUserId, createCommand(categoryId));
-            throw new IllegalStateException("Force enclosing transaction rollback.");
-        })).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(
+                () -> transactionTemplate.executeWithoutResult(status -> {
+                    transactionService.create(actorUserId, createCommand(categoryId));
+                    throw new IllegalStateException("Force enclosing transaction rollback.");
+                })
+        ).isInstanceOf(IllegalStateException.class);
 
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM transactions", Integer.class)).isZero();
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM audit_logs", Integer.class)).isZero();
     }
 
-    private void assertAuditRow(AuditRow auditRow, UUID actorUserId, String action, AuditStateExpectation beforeState,
-                                AuditStateExpectation afterState) {
+    private void assertAuditRow(
+            AuditRow auditRow,
+            UUID actorUserId,
+            String action,
+            AuditStateExpectation beforeState,
+            AuditStateExpectation afterState
+    ) {
         assertThat(auditRow.actorUserId()).isEqualTo(actorUserId);
         assertThat(auditRow.action()).isEqualTo(action);
         assertThat(auditRow.occurredAt()).isEqualTo(AUDIT_TIME);
@@ -155,27 +175,52 @@ class TransactionAuditIntegrationTests {
         UUID categoryId = UUID.randomUUID();
         jdbcTemplate.update(
                 "INSERT INTO users (id, email, password_hash, display_name, base_currency) VALUES (?, ?, ?, ?, ?)",
-                userId, userId + "@example.test", "$2a$10$abcdefghijklmnopqrstuvabcdefghijklmnopqrstuvabcdefghijklmn",
-                "Test user", "USD"
+                userId,
+                userId + "@example.test",
+                "$2a$10$abcdefghijklmnopqrstuvabcdefghijklmnopqrstuvabcdefghijklmn",
+                "Test user",
+                "USD"
         );
         jdbcTemplate.update(
                 "INSERT INTO categories (id, user_id, name, transaction_type, icon, color) VALUES (?, ?, ?, ?, ?, ?)",
-                categoryId, userId, "Food", "EXPENSE", "utensils", "#0A1B2C"
+                categoryId,
+                userId,
+                "Food",
+                "EXPENSE",
+                "utensils",
+                "#0A1B2C"
         );
         return categoryId;
     }
 
     private CreateTransactionCommand createCommand(UUID categoryId) {
-        return new CreateTransactionCommand(categoryId, new BigDecimal("12.3400"), "EUR", new BigDecimal("1.08500000"),
-                LocalDate.of(2026, 9, 16), " Groceries ", TransactionType.EXPENSE);
+        return new CreateTransactionCommand(
+                categoryId,
+                new BigDecimal("12.3400"),
+                "EUR",
+                new BigDecimal("1.08500000"),
+                LocalDate.of(2026, 9, 16),
+                " Groceries ",
+                TransactionType.EXPENSE
+        );
     }
 
-    private record AuditRow(UUID actorUserId, String action, Instant occurredAt, String beforeState, String afterState) {
-    }
+    private record AuditRow(
+            UUID actorUserId,
+            String action,
+            Instant occurredAt,
+            String beforeState,
+            String afterState
+    ) {}
 
-    private record AuditStateExpectation(UUID categoryId, String amount, String currency, String exchangeRateToBase,
-                                         String transactionDate, String description) {
-    }
+    private record AuditStateExpectation(
+            UUID categoryId,
+            String amount,
+            String currency,
+            String exchangeRateToBase,
+            String transactionDate,
+            String description
+    ) {}
 
     @TestConfiguration(proxyBeanMethods = false)
     static class FixedClockConfiguration {

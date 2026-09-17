@@ -16,7 +16,11 @@ class UserAuthenticationServiceTests {
     private final UserAuthenticationRepository repository = mock(UserAuthenticationRepository.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
     private final AccessTokenIssuer accessTokenIssuer = mock(AccessTokenIssuer.class);
-    private final UserAuthenticationService service = new UserAuthenticationService(repository, passwordEncoder, accessTokenIssuer);
+    private final UserAuthenticationService service = new UserAuthenticationService(
+            repository,
+            passwordEncoder,
+            accessTokenIssuer
+    );
 
     @Test
     void shouldCheckDummyHashWhenEmailIsUnknown() {

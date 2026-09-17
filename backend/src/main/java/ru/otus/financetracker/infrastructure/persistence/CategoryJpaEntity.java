@@ -1,7 +1,7 @@
 package ru.otus.financetracker.infrastructure.persistence;
 
-import java.time.Instant;
 import java.sql.Types;
+import java.time.Instant;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
@@ -50,8 +50,17 @@ public class CategoryJpaEntity {
     protected CategoryJpaEntity() {
     }
 
-    CategoryJpaEntity(UUID id, UUID userId, String name, TransactionType transactionType, String icon, String color,
-                      Instant createdAt, Instant updatedAt, long version) {
+    CategoryJpaEntity(
+            UUID id,
+            UUID userId,
+            String name,
+            TransactionType transactionType,
+            String icon,
+            String color,
+            Instant createdAt,
+            Instant updatedAt,
+            long version
+    ) {
         this.id = id;
         this.userId = userId;
         this.name = name;

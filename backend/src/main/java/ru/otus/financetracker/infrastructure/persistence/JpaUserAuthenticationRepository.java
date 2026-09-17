@@ -27,7 +27,15 @@ public class JpaUserAuthenticationRepository implements UserAuthenticationReposi
     }
 
     private User toDomain(UserJpaEntity entity) {
-        return new User(entity.getId(), entity.getEmail(), entity.getPasswordHash(), entity.getDisplayName(),
-                entity.getBaseCurrency(), entity.getCreatedAt(), entity.getUpdatedAt(), entity.getVersion());
+        return new User(
+                entity.getId(),
+                entity.getEmail(),
+                entity.getPasswordHash(),
+                entity.getDisplayName(),
+                entity.getBaseCurrency(),
+                entity.getCreatedAt(),
+                entity.getUpdatedAt(),
+                entity.getVersion()
+        );
     }
 }

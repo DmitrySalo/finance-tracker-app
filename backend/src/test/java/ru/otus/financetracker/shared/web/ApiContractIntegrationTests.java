@@ -1,5 +1,7 @@
 package ru.otus.financetracker.shared.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
@@ -7,28 +9,26 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.mockito.Mockito.mock;
-import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpInputMessage;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,16 +37,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import ru.otus.financetracker.shared.PageResponse;
-import ru.otus.financetracker.application.identity.UserRegistrationRepository;
-import ru.otus.financetracker.application.identity.UserAuthenticationRepository;
-import ru.otus.financetracker.application.categories.CategoryRepository;
-import ru.otus.financetracker.application.transactions.TransactionRepository;
 import ru.otus.financetracker.application.audit.AuditLogRepository;
 import ru.otus.financetracker.application.budgets.BudgetRepository;
+import ru.otus.financetracker.application.categories.CategoryRepository;
 import ru.otus.financetracker.application.dashboard.DashboardRepository;
+import ru.otus.financetracker.application.identity.UserAuthenticationRepository;
+import ru.otus.financetracker.application.identity.UserRegistrationRepository;
 import ru.otus.financetracker.application.recurring.RecurringTransactionOccurrenceRepository;
 import ru.otus.financetracker.application.recurring.RecurringTransactionRepository;
+import ru.otus.financetracker.application.transactions.TransactionRepository;
+import ru.otus.financetracker.shared.PageResponse;
 
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude="
@@ -202,7 +202,12 @@ class ApiContractIntegrationTests {
                         .header("Access-Control-Request-Method", "GET"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Access-Control-Allow-Origin", "https://frontend.test"))
-                .andExpect(header().string("Access-Control-Allow-Methods", org.hamcrest.Matchers.containsString("GET")));
+                .andExpect(
+                        header().string(
+                                "Access-Control-Allow-Methods",
+                                org.hamcrest.Matchers.containsString("GET")
+                        )
+                );
     }
 
     @Test
@@ -226,13 +231,21 @@ class ApiContractIntegrationTests {
                 .andReturn();
 
         @SuppressWarnings("unchecked")
-        Map<String, Map<String, Object>> paths = (Map<String, Map<String, Object>>) com.jayway.jsonpath.JsonPath
-                .read(openApiDocument.getResponse().getContentAsString(), "$.paths");
+        Map<String, Map<String, Object>> paths =
+                (Map<String, Map<String, Object>>) com.jayway.jsonpath.JsonPath.read(
+                        openApiDocument.getResponse().getContentAsString(),
+                        "$.paths"
+                );
 
-        assertThat(paths.entrySet().stream()
-                .filter(entry -> entry.getKey().startsWith("/api/v1/") && !entry.getKey().startsWith("/api/v1/test/"))
-                .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey,
-                        entry -> entry.getValue().keySet())))
+        var implementedPaths = paths.entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith("/api/v1/"))
+                .filter(entry -> !entry.getKey().startsWith("/api/v1/test/"))
+                .collect(java.util.stream.Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().keySet()
+                ));
+
+        assertThat(implementedPaths)
                 .containsExactlyInAnyOrderEntriesOf(Map.ofEntries(
                         Map.entry("/api/v1/auth/register", Set.of("post")),
                         Map.entry("/api/v1/auth/login", Set.of("post")),
@@ -304,7 +317,10 @@ class ApiContractIntegrationTests {
 
         @GetMapping("/payload-too-large")
         ResponseEntity<Void> payloadTooLarge() {
-            var exception = new HttpMessageNotReadableException("Request is too large", mock(HttpInputMessage.class));
+            var exception = new HttpMessageNotReadableException(
+                    "Request is too large",
+                    mock(HttpInputMessage.class)
+            );
             exception.initCause(new RequestSizeExceededException());
             throw exception;
         }

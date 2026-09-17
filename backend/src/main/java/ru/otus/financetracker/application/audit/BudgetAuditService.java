@@ -34,13 +34,31 @@ public class BudgetAuditService {
         save(actorUserId, budget.id(), AuditAction.DELETE, stateOf(budget), null);
     }
 
-    private void save(UUID actorUserId, UUID entityId, AuditAction action, BudgetAuditState beforeState,
-                      BudgetAuditState afterState) {
-        auditLogRepository.save(new AuditLog(UUID.randomUUID(), actorUserId, BUDGET_ENTITY_TYPE, entityId, action,
-                clock.instant(), beforeState, afterState));
+    private void save(
+            UUID actorUserId,
+            UUID entityId,
+            AuditAction action,
+            BudgetAuditState beforeState,
+            BudgetAuditState afterState
+    ) {
+        auditLogRepository.save(new AuditLog(
+                UUID.randomUUID(),
+                actorUserId,
+                BUDGET_ENTITY_TYPE,
+                entityId,
+                action,
+                clock.instant(),
+                beforeState,
+                afterState
+        ));
     }
 
     private BudgetAuditState stateOf(Budget budget) {
-        return new BudgetAuditState(budget.categoryId(), budget.budgetMonth(), budget.limitAmount(), budget.currency());
+        return new BudgetAuditState(
+                budget.categoryId(),
+                budget.budgetMonth(),
+                budget.limitAmount(),
+                budget.currency()
+        );
     }
 }

@@ -19,27 +19,65 @@ public class JpaDashboardRepository implements DashboardRepository {
     }
 
     @Override
-    public List<DashboardCategoryExpense> findExpenseAmountsByCategory(UUID userId, LocalDate fromInclusive,
-                                                                        LocalDate toExclusive, int limit) {
-        return dashboardJpaRepository.findExpenseAmountsByCategory(userId, fromInclusive, toExclusive, limit).stream()
-                .map(expense -> new DashboardCategoryExpense(expense.getCategoryId(), expense.getCategoryName(),
-                        expense.getCategoryIcon(), expense.getCategoryColor(), expense.getAmount()))
+    public List<DashboardCategoryExpense> findExpenseAmountsByCategory(
+            UUID userId,
+            LocalDate fromInclusive,
+            LocalDate toExclusive,
+            int limit
+    ) {
+        return dashboardJpaRepository.findExpenseAmountsByCategory(
+                        userId,
+                        fromInclusive,
+                        toExclusive,
+                        limit
+                )
+                .stream()
+                .map(expense -> new DashboardCategoryExpense(
+                        expense.getCategoryId(),
+                        expense.getCategoryName(),
+                        expense.getCategoryIcon(),
+                        expense.getCategoryColor(),
+                        expense.getAmount()
+                ))
                 .toList();
     }
 
     @Override
-    public List<DashboardCategoryExpense> findTopExpenseAmountsByCategory(UUID userId, LocalDate fromInclusive,
-                                                                           LocalDate toExclusive, int limit) {
-        return dashboardJpaRepository.findTopExpenseAmountsByCategory(userId, fromInclusive, toExclusive, limit).stream()
-                .map(expense -> new DashboardCategoryExpense(expense.getCategoryId(), expense.getCategoryName(),
-                        expense.getCategoryIcon(), expense.getCategoryColor(), expense.getAmount()))
+    public List<DashboardCategoryExpense> findTopExpenseAmountsByCategory(
+            UUID userId,
+            LocalDate fromInclusive,
+            LocalDate toExclusive,
+            int limit
+    ) {
+        return dashboardJpaRepository.findTopExpenseAmountsByCategory(
+                        userId,
+                        fromInclusive,
+                        toExclusive,
+                        limit
+                )
+                .stream()
+                .map(expense -> new DashboardCategoryExpense(
+                        expense.getCategoryId(),
+                        expense.getCategoryName(),
+                        expense.getCategoryIcon(),
+                        expense.getCategoryColor(),
+                        expense.getAmount()
+                ))
                 .toList();
     }
 
     @Override
-    public List<DashboardMonthlyExpense> findMonthlyExpenseAmounts(UUID userId, LocalDate fromInclusive,
-                                                                   LocalDate toExclusive) {
-        return dashboardJpaRepository.findMonthlyExpenseAmounts(userId, fromInclusive, toExclusive).stream()
+    public List<DashboardMonthlyExpense> findMonthlyExpenseAmounts(
+            UUID userId,
+            LocalDate fromInclusive,
+            LocalDate toExclusive
+    ) {
+        return dashboardJpaRepository.findMonthlyExpenseAmounts(
+                        userId,
+                        fromInclusive,
+                        toExclusive
+                )
+                .stream()
                 .map(expense -> new DashboardMonthlyExpense(expense.getMonth(), expense.getAmount()))
                 .toList();
     }

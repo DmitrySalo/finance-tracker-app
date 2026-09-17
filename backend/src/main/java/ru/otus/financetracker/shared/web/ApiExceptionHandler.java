@@ -3,182 +3,378 @@ package ru.otus.financetracker.shared.web;
 import java.util.List;
 
 import jakarta.validation.ConstraintViolationException;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import ru.otus.financetracker.shared.ErrorCode;
 import ru.otus.financetracker.api.auth.AuthenticationRateLimitExceededException;
-import ru.otus.financetracker.application.identity.InvalidCredentialsException;
-import ru.otus.financetracker.application.transactions.TransactionCategoryTypeMismatchException;
-import ru.otus.financetracker.application.transactions.InvalidTransactionFilterException;
-import ru.otus.financetracker.application.transactions.imports.CsvImportValidationException;
-import ru.otus.financetracker.application.transactions.imports.CsvImportPayloadTooLargeException;
 import ru.otus.financetracker.application.budgets.BudgetCategoryMustBeExpenseException;
-import ru.otus.financetracker.application.budgets.BudgetMonthMustBeFirstDayException;
 import ru.otus.financetracker.application.budgets.BudgetCurrencyMustMatchUserBaseCurrencyException;
+import ru.otus.financetracker.application.budgets.BudgetMonthMustBeFirstDayException;
+import ru.otus.financetracker.application.identity.InvalidCredentialsException;
 import ru.otus.financetracker.application.recurring.RecurringTransactionCategoryTypeMismatchException;
+import ru.otus.financetracker.application.transactions.InvalidTransactionFilterException;
+import ru.otus.financetracker.application.transactions.TransactionCategoryTypeMismatchException;
+import ru.otus.financetracker.application.transactions.imports.CsvImportPayloadTooLargeException;
+import ru.otus.financetracker.application.transactions.imports.CsvImportValidationException;
+import ru.otus.financetracker.shared.ErrorCode;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException exception,
-                                                       WebRequest request) {
+    ResponseEntity<ApiErrorResponse> handleValidation(
+            MethodArgumentNotValidException exception,
+            WebRequest request
+    ) {
         var violations = exception.getBindingResult().getFieldErrors().stream()
                 .map(this::toViolation)
                 .toList();
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, violations);
+        return error(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_FAILED,
+                "Request validation failed.",
+                request,
+                violations
+        );
     }
 
     @ExceptionHandler(HandlerMethodValidationException.class)
-    ResponseEntity<ApiErrorResponse> handleMethodValidation(HandlerMethodValidationException exception,
-                                                             WebRequest request) {
+    ResponseEntity<ApiErrorResponse> handleMethodValidation(
+            HandlerMethodValidationException exception,
+            WebRequest request
+    ) {
         var violations = exception.getParameterValidationResults().stream()
-                .flatMap(result -> result.getResolvableErrors().stream().map(error ->
-                        new ApiErrorResponse.Violation(
+                .flatMap(result -> result.getResolvableErrors()
+                        .stream()
+                        .map(error -> new ApiErrorResponse.Violation(
                                 result.getMethodParameter().getParameterName(),
                                 toErrorCode(resolveErrorCode(error.getCodes())),
                                 error.getDefaultMessage()
                         )))
                 .toList();
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, violations);
+        return error(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_FAILED,
+                "Request validation failed.",
+                request,
+                violations
+        );
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    ResponseEntity<ApiErrorResponse> handleConstraintViolation(ConstraintViolationException exception, WebRequest request) {
+    ResponseEntity<ApiErrorResponse> handleConstraintViolation(
+            ConstraintViolationException exception,
+            WebRequest request
+    ) {
         var violations = exception.getConstraintViolations().stream()
                 .map(violation -> new ApiErrorResponse.Violation(
                         requestParameterName(violation.getPropertyPath().toString()),
-                        toErrorCode(violation.getConstraintDescriptor().getAnnotation().annotationType().getSimpleName()),
+                        toErrorCode(violation.getConstraintDescriptor().getAnnotation().annotationType()
+                                .getSimpleName()),
                         violation.getMessage()
                 ))
                 .toList();
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, violations);
+        return error(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_FAILED,
+                "Request validation failed.",
+                request,
+                violations
+        );
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    ResponseEntity<ApiErrorResponse> handleUnreadableMessage(HttpMessageNotReadableException exception,
-                                                              WebRequest request) {
+    ResponseEntity<ApiErrorResponse> handleUnreadableMessage(
+            HttpMessageNotReadableException exception,
+            WebRequest request
+    ) {
         if (hasCause(exception, RequestSizeExceededException.class)) {
-            return error(HttpStatus.PAYLOAD_TOO_LARGE, ErrorCode.PAYLOAD_TOO_LARGE,
-                    "Request body exceeds the allowed size.", request, List.of());
+            return error(
+                    HttpStatus.PAYLOAD_TOO_LARGE,
+                    ErrorCode.PAYLOAD_TOO_LARGE,
+                    "Request body exceeds the allowed size.",
+                    request,
+                    List.of()
+            );
         }
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, List.of());
+        return error(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_FAILED,
+                "Request validation failed.",
+                request,
+                List.of()
+        );
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    ResponseEntity<ApiErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException exception, WebRequest request) {
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, List.of());
+    ResponseEntity<ApiErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_FAILED,
+                "Request validation failed.",
+                request,
+                List.of()
+        );
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    ResponseEntity<ApiErrorResponse> handleMissingRequestParameter(MissingServletRequestParameterException exception,
-                                                                    WebRequest request) {
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request,
-                List.of(new ApiErrorResponse.Violation(exception.getParameterName(), "REQUIRED", "Must not be null.")));
+    ResponseEntity<ApiErrorResponse> handleMissingRequestParameter(
+            MissingServletRequestParameterException exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_FAILED,
+                "Request validation failed.",
+                request,
+                List.of(new ApiErrorResponse.Violation(
+                        exception.getParameterName(),
+                        "REQUIRED",
+                        "Must not be null."
+                ))
+        );
     }
 
     @ExceptionHandler(MissingServletRequestPartException.class)
-    ResponseEntity<ApiErrorResponse> handleMissingRequestPart(MissingServletRequestPartException exception,
-                                                               WebRequest request) {
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request,
-                List.of(new ApiErrorResponse.Violation(exception.getRequestPartName(), "REQUIRED", "Must not be null.")));
+    ResponseEntity<ApiErrorResponse> handleMissingRequestPart(
+            MissingServletRequestPartException exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_FAILED,
+                "Request validation failed.",
+                request,
+                List.of(new ApiErrorResponse.Violation(
+                        exception.getRequestPartName(),
+                        "REQUIRED",
+                        "Must not be null."
+                ))
+        );
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    ResponseEntity<ApiErrorResponse> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException exception,
-                                                                  WebRequest request) {
-        return error(HttpStatus.PAYLOAD_TOO_LARGE, ErrorCode.PAYLOAD_TOO_LARGE,
-                "Request body exceeds the allowed size.", request, List.of());
+    ResponseEntity<ApiErrorResponse> handleMaxUploadSizeExceeded(
+            MaxUploadSizeExceededException exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                ErrorCode.PAYLOAD_TOO_LARGE,
+                "Request body exceeds the allowed size.",
+                request,
+                List.of()
+        );
     }
 
     @ExceptionHandler(CsvImportPayloadTooLargeException.class)
-    ResponseEntity<ApiErrorResponse> handleCsvImportPayloadTooLarge(CsvImportPayloadTooLargeException exception,
-                                                                     WebRequest request) {
-        return error(HttpStatus.PAYLOAD_TOO_LARGE, ErrorCode.PAYLOAD_TOO_LARGE,
-                "Request body exceeds the allowed size.", request, List.of());
+    ResponseEntity<ApiErrorResponse> handleCsvImportPayloadTooLarge(
+            CsvImportPayloadTooLargeException exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                ErrorCode.PAYLOAD_TOO_LARGE,
+                "Request body exceeds the allowed size.",
+                request,
+                List.of()
+        );
     }
 
-    @ExceptionHandler({ResourceNotFoundException.class, OwnershipDeniedException.class, NoResourceFoundException.class})
+    @ExceptionHandler({
+            ResourceNotFoundException.class,
+            OwnershipDeniedException.class,
+            NoResourceFoundException.class
+    })
     ResponseEntity<ApiErrorResponse> handleNotFound(Exception exception, WebRequest request) {
-        return error(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, "Resource not found.", request, List.of());
+        return error(
+                HttpStatus.NOT_FOUND,
+                ErrorCode.NOT_FOUND,
+                "Resource not found.",
+                request,
+                List.of()
+        );
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
-    ResponseEntity<ApiErrorResponse> handleConflict(OptimisticLockingFailureException exception, WebRequest request) {
-        return error(HttpStatus.CONFLICT, ErrorCode.CONFLICT, "Resource state conflict.", request, List.of());
+    ResponseEntity<ApiErrorResponse> handleConflict(
+            OptimisticLockingFailureException exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.CONFLICT,
+                ErrorCode.CONFLICT,
+                "Resource state conflict.",
+                request,
+                List.of()
+        );
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    ResponseEntity<ApiErrorResponse> handleDataConflict(DataIntegrityViolationException exception, WebRequest request) {
-        return error(HttpStatus.CONFLICT, ErrorCode.CONFLICT, "Resource state conflict.", request, List.of());
+    ResponseEntity<ApiErrorResponse> handleDataConflict(
+            DataIntegrityViolationException exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.CONFLICT,
+                ErrorCode.CONFLICT,
+                "Resource state conflict.",
+                request,
+                List.of()
+        );
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    ResponseEntity<ApiErrorResponse> handleForbidden(AccessDeniedException exception, WebRequest request) {
-        return error(HttpStatus.FORBIDDEN, ErrorCode.FORBIDDEN, "Access is denied.", request, List.of());
+    ResponseEntity<ApiErrorResponse> handleForbidden(
+            AccessDeniedException exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.FORBIDDEN,
+                ErrorCode.FORBIDDEN,
+                "Access is denied.",
+                request,
+                List.of()
+        );
     }
 
     @ExceptionHandler(AuthenticationRateLimitExceededException.class)
-    ResponseEntity<ApiErrorResponse> handleRateLimit(AuthenticationRateLimitExceededException exception, WebRequest request) {
-        return error(HttpStatus.TOO_MANY_REQUESTS, ErrorCode.RATE_LIMITED, "Too many authentication attempts.", request, List.of());
+    ResponseEntity<ApiErrorResponse> handleRateLimit(
+            AuthenticationRateLimitExceededException exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.TOO_MANY_REQUESTS,
+                ErrorCode.RATE_LIMITED,
+                "Too many authentication attempts.",
+                request,
+                List.of()
+        );
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)
-    ResponseEntity<ApiErrorResponse> handleInvalidCredentials(InvalidCredentialsException exception, WebRequest request) {
-        return error(HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, "Invalid email or password.", request, List.of());
+    ResponseEntity<ApiErrorResponse> handleInvalidCredentials(
+            InvalidCredentialsException exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.UNAUTHORIZED,
+                ErrorCode.UNAUTHORIZED,
+                "Invalid email or password.",
+                request,
+                List.of()
+        );
     }
 
     @ExceptionHandler(TransactionCategoryTypeMismatchException.class)
     ResponseEntity<ApiErrorResponse> handleTransactionCategoryTypeMismatch(
-            TransactionCategoryTypeMismatchException exception, WebRequest request) {
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED,
-                "Transaction type must match category type.", request, List.of());
+            TransactionCategoryTypeMismatchException exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_FAILED,
+                "Transaction type must match category type.",
+                request,
+                List.of()
+        );
     }
 
     @ExceptionHandler(InvalidTransactionFilterException.class)
     ResponseEntity<ApiErrorResponse> handleInvalidTransactionFilter(
-            InvalidTransactionFilterException exception, WebRequest request) {
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, List.of());
+            InvalidTransactionFilterException exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_FAILED,
+                "Request validation failed.",
+                request,
+                List.of()
+        );
     }
 
     @ExceptionHandler(CsvImportValidationException.class)
-    ResponseEntity<ApiErrorResponse> handleCsvImportValidation(CsvImportValidationException exception, WebRequest request) {
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request,
-                exception.violations().stream().map(violation -> new ApiErrorResponse.Violation(violation.field(),
-                        violation.code(), violation.message())).toList());
+    ResponseEntity<ApiErrorResponse> handleCsvImportValidation(
+            CsvImportValidationException exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_FAILED,
+                "Request validation failed.",
+                request,
+                exception.violations()
+                        .stream()
+                        .map(violation -> new ApiErrorResponse.Violation(
+                                violation.field(),
+                                violation.code(),
+                                violation.message()
+                        ))
+                        .toList()
+        );
     }
 
-    @ExceptionHandler({BudgetCategoryMustBeExpenseException.class, BudgetMonthMustBeFirstDayException.class,
-            BudgetCurrencyMustMatchUserBaseCurrencyException.class})
+    @ExceptionHandler({
+            BudgetCategoryMustBeExpenseException.class,
+            BudgetMonthMustBeFirstDayException.class,
+            BudgetCurrencyMustMatchUserBaseCurrencyException.class
+    })
     ResponseEntity<ApiErrorResponse> handleInvalidBudget(Exception exception, WebRequest request) {
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "Request validation failed.", request, List.of());
+        return error(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_FAILED,
+                "Request validation failed.",
+                request,
+                List.of()
+        );
     }
 
-    @ExceptionHandler(RecurringTransactionCategoryTypeMismatchException.class)
-    ResponseEntity<ApiErrorResponse> handleInvalidRecurringTransaction(Exception exception, WebRequest request) {
-        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED,
-                "Transaction type must match category type.", request, List.of());
+    @ExceptionHandler(
+            RecurringTransactionCategoryTypeMismatchException.class
+    )
+    ResponseEntity<ApiErrorResponse> handleInvalidRecurringTransaction(
+            Exception exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_FAILED,
+                "Transaction type must match category type.",
+                request,
+                List.of()
+        );
     }
 
     @ExceptionHandler(Exception.class)
-    ResponseEntity<ApiErrorResponse> handleUnexpected(Exception exception, WebRequest request) {
-        return error(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                "An unexpected error occurred.", request, List.of());
+    ResponseEntity<ApiErrorResponse> handleUnexpected(
+            Exception exception,
+            WebRequest request
+    ) {
+        return error(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                ErrorCode.INTERNAL_ERROR,
+                "An unexpected error occurred.",
+                request,
+                List.of()
+        );
     }
 
     private ApiErrorResponse.Violation toViolation(FieldError fieldError) {
@@ -225,11 +421,15 @@ public class ApiExceptionHandler {
             WebRequest request,
             List<ApiErrorResponse.Violation> violations
     ) {
-        return ResponseEntity.status(status).body(new ApiErrorResponse(
-                code,
-                message,
-                (String) request.getAttribute(CorrelationIdFilter.ATTRIBUTE_NAME, WebRequest.SCOPE_REQUEST),
-                violations
-        ));
+        return ResponseEntity.status(status)
+                .body(new ApiErrorResponse(
+                        code,
+                        message,
+                        (String) request.getAttribute(
+                                CorrelationIdFilter.ATTRIBUTE_NAME,
+                                WebRequest.SCOPE_REQUEST
+                        ),
+                        violations
+                ));
     }
 }

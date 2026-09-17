@@ -12,8 +12,8 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
@@ -27,6 +27,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
+
 
 @SpringBootTest(properties = {
         "JWT_ISSUER=https://issuer.test",
@@ -44,7 +45,9 @@ import org.testcontainers.utility.DockerImageName;
 class AuthControllerIntegrationTests {
 
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
+            DockerImageName.parse("postgres:18-alpine")
+    );
 
     @Autowired
     private MockMvc mockMvc;
@@ -77,12 +80,16 @@ class AuthControllerIntegrationTests {
                 .andExpect(status().isCreated());
 
         var user = jdbcTemplate.queryForMap(
-                "SELECT email, password_hash, display_name, base_currency FROM users WHERE email = ?", "person@example.test"
+                "SELECT email, password_hash, display_name, base_currency FROM users WHERE email = ?",
+                "person@example.test"
         );
-        assertThat(user).containsEntry("email", "person@example.test")
-                .containsEntry("display_name", "Test User")
-                .containsEntry("base_currency", "USD");
-        assertThat((String) user.get("password_hash")).startsWith("$2").isNotEqualTo("a-secure-password");
+        assertThat(user)
+            .containsEntry("email", "person@example.test")
+            .containsEntry("display_name", "Test User")
+            .containsEntry("base_currency", "USD");
+        assertThat((String) user.get("password_hash"))
+            .startsWith("$2")
+            .isNotEqualTo("a-secure-password");
     }
 
     @Test
@@ -103,9 +110,13 @@ class AuthControllerIntegrationTests {
                 {"email":"person@example.test","password":"a-secure-password","displayName":"Test User","baseCurrency":"USD"}
                 """;
 
-        mockMvc.perform(post("/api/v1/auth/register").contentType("application/json").content(request))
+        mockMvc.perform(post("/api/v1/auth/register")
+                .contentType("application/json")
+                .content(request))
                 .andExpect(status().isCreated());
-        mockMvc.perform(post("/api/v1/auth/register").contentType("application/json").content(request))
+        mockMvc.perform(post("/api/v1/auth/register")
+                .contentType("application/json")
+                .content(request))
                 .andExpect(status().isCreated());
 
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM users", Integer.class)).isEqualTo(1);
@@ -129,10 +140,13 @@ class AuthControllerIntegrationTests {
                 .andExpect(jsonPath("$.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
                 .andReturn();
-        String token = new tools.jackson.databind.ObjectMapper().readTree(login.getResponse().getContentAsString())
-                .get("accessToken").asString();
+        String token = new tools.jackson.databind.ObjectMapper()
+            .readTree(login.getResponse().getContentAsString())
+            .get("accessToken")
+            .asString();
 
-        mockMvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/v1/auth/me")
+                .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("person@example.test"))
                 .andExpect(jsonPath("$.displayName").value("Test User"))
@@ -162,16 +176,22 @@ class AuthControllerIntegrationTests {
     void shouldRejectJwtWithUnexpectedAudience() throws Exception {
         String token = signedJwt("another-audience", Instant.parse("2099-01-01T00:00:00Z"));
 
-        mockMvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/v1/auth/me")
+                .header("Authorization", "Bearer " + token))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
 
     @Test
     void shouldRejectJwtWithUnexpectedIssuer() throws Exception {
-        String token = signedJwt("https://another-issuer.test", "finance-tracker-test", Instant.parse("2099-01-01T00:00:00Z"));
+        String token = signedJwt(
+            "https://another-issuer.test",
+            "finance-tracker-test",
+            Instant.parse("2099-01-01T00:00:00Z")
+        );
 
-        mockMvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/v1/auth/me")
+                .header("Authorization", "Bearer " + token))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
@@ -180,7 +200,8 @@ class AuthControllerIntegrationTests {
     void shouldRejectExpiredJwt() throws Exception {
         String token = signedJwt("finance-tracker-test", Instant.parse("2020-01-01T00:00:00Z"));
 
-        mockMvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/v1/auth/me")
+                .header("Authorization", "Bearer " + token))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
@@ -221,7 +242,8 @@ class AuthControllerIntegrationTests {
                 .issuedAt(Instant.parse("2019-01-01T00:00:00Z"))
                 .expiresAt(expiresAt)
                 .build();
-        return jwtEncoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))
-                .getTokenValue();
+        return jwtEncoder.encode(
+            JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims)
+        ).getTokenValue();
     }
 }

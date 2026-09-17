@@ -18,8 +18,14 @@ public record CategoryResponse(
 ) {
     static CategoryResponse from(Category category) {
         return new CategoryResponse(
-                category.id(), category.name(), category.transactionType(), category.icon(), category.color(),
-                category.createdAt(), category.updatedAt(), category.version()
+                category.id(),
+                category.name(),
+                category.transactionType(),
+                category.icon(),
+                category.color(),
+                category.createdAt(),
+                category.updatedAt(),
+                category.version()
         );
     }
 }

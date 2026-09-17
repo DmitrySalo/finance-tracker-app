@@ -29,10 +29,16 @@ public class DashboardService {
     public Dashboard getDashboard(UUID userId, YearMonth month) {
         LocalDate fromInclusive = month.atDay(1);
         List<DashboardCategoryExpense> categoryExpenses = dashboardRepository.findExpenseAmountsByCategory(
-                userId, fromInclusive, fromInclusive.plusMonths(1), PIE_CATEGORY_COUNT
+                userId,
+                fromInclusive,
+                fromInclusive.plusMonths(1),
+                PIE_CATEGORY_COUNT
         );
         List<DashboardCategoryExpense> topCategoryExpenses = dashboardRepository.findTopExpenseAmountsByCategory(
-                userId, fromInclusive, fromInclusive.plusMonths(1), TOP_CATEGORY_COUNT
+                userId,
+                fromInclusive,
+                fromInclusive.plusMonths(1),
+                TOP_CATEGORY_COUNT
         );
         return new Dashboard(month, categoryExpenses, topCategoryExpenses);
     }
@@ -41,13 +47,19 @@ public class DashboardService {
     public SpendingTrend getSpendingTrend(UUID userId, YearMonth endMonth) {
         YearMonth startMonth = endMonth.minusMonths(TREND_MONTH_COUNT - 1L);
         Map<LocalDate, BigDecimal> amountsByMonth = dashboardRepository.findMonthlyExpenseAmounts(
-                        userId, startMonth.atDay(1), endMonth.plusMonths(1).atDay(1))
+                userId,
+                startMonth.atDay(1),
+                endMonth.plusMonths(1).atDay(1)
+        )
                 .stream()
                 .collect(Collectors.toMap(DashboardMonthlyExpense::month, DashboardMonthlyExpense::amount));
         List<DashboardMonthlyExpense> months = IntStream.range(0, TREND_MONTH_COUNT)
                 .mapToObj(startMonth::plusMonths)
                 .map(yearMonth -> yearMonth.atDay(1))
-                .map(month -> new DashboardMonthlyExpense(month, amountsByMonth.getOrDefault(month, BigDecimal.ZERO)))
+                .map(month -> new DashboardMonthlyExpense(
+                        month,
+                        amountsByMonth.getOrDefault(month, BigDecimal.ZERO)
+                ))
                 .toList();
         return new SpendingTrend(endMonth, months);
     }

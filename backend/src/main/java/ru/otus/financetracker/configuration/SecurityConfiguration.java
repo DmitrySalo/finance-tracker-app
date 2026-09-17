@@ -44,15 +44,22 @@ public class SecurityConfiguration {
         OAuth2TokenValidator<Jwt> audienceValidator = jwt -> jwt.getAudience().contains(properties.jwt().audience())
                 ? OAuth2TokenValidatorResult.success()
                 : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token"));
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
-                JwtValidators.createDefaultWithIssuer(properties.jwt().issuer()), audienceValidator
-        ));
+        decoder.setJwtValidator(
+                new DelegatingOAuth2TokenValidator<>(
+                        JwtValidators.createDefaultWithIssuer(properties.jwt().issuer()),
+                        audienceValidator
+                )
+        );
         return decoder;
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, ApiErrorResponseWriter errorResponseWriter,
-                                            CorsConfigurationSource corsConfigurationSource, Environment environment) throws Exception {
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            ApiErrorResponseWriter errorResponseWriter,
+            CorsConfigurationSource corsConfigurationSource,
+            Environment environment
+    ) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
@@ -66,15 +73,38 @@ public class SecurityConfiguration {
                     authorize.anyRequest().authenticated();
                 })
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .authenticationEntryPoint((request, response, authenticationException) -> errorResponseWriter.write(
-                                response, request, 401, ErrorCode.UNAUTHORIZED, "Authentication is required."
-                        ))
-                        .jwt(jwt -> { }))
-                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
-                        (request, response, authenticationException) -> errorResponseWriter.write(response, request,
-                                401, ErrorCode.UNAUTHORIZED, "Authentication is required.")
-                ).accessDeniedHandler((request, response, accessDeniedException) ->
-                        errorResponseWriter.write(response, request, 403, ErrorCode.FORBIDDEN, "Access is denied.")));
+                        .authenticationEntryPoint(
+                                (request, response, authenticationException) -> errorResponseWriter.write(
+                                        response,
+                                        request,
+                                        401,
+                                        ErrorCode.UNAUTHORIZED,
+                                        "Authentication is required."
+                                )
+                        )
+                        .jwt(jwt -> {
+                        })
+                )
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(
+                                (request, response, authenticationException) -> errorResponseWriter.write(
+                                        response,
+                                        request,
+                                        401,
+                                        ErrorCode.UNAUTHORIZED,
+                                        "Authentication is required."
+                                )
+                        )
+                        .accessDeniedHandler(
+                                (request, response, accessDeniedException) -> errorResponseWriter.write(
+                                        response,
+                                        request,
+                                        403,
+                                        ErrorCode.FORBIDDEN,
+                                        "Access is denied."
+                                )
+                        )
+                );
         return http.build();
     }
 

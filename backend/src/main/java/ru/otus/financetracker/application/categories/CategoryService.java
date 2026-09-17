@@ -27,8 +27,15 @@ public class CategoryService {
     public Category create(UUID userId, CreateCategoryCommand command) {
         Instant now = clock.instant();
         return categoryRepository.save(new Category(
-                UUID.randomUUID(), userId, command.name().strip(), command.transactionType(), command.icon().strip(),
-                command.color(), now, now, 0
+                UUID.randomUUID(),
+                userId,
+                command.name().strip(),
+                command.transactionType(),
+                command.icon().strip(),
+                command.color(),
+                now,
+                now,
+                0
         ));
     }
 
@@ -49,10 +56,15 @@ public class CategoryService {
             throw new OptimisticLockingFailureException("Category has been modified.");
         }
         return categoryRepository.save(new Category(
-                category.id(), category.userId(), command.name() == null ? category.name() : command.name().strip(),
+                category.id(),
+                category.userId(),
+                command.name() == null ? category.name() : command.name().strip(),
                 command.transactionType() == null ? category.transactionType() : command.transactionType(),
                 command.icon() == null ? category.icon() : command.icon().strip(),
-                command.color() == null ? category.color() : command.color(), category.createdAt(), clock.instant(), category.version()
+                command.color() == null ? category.color() : command.color(),
+                category.createdAt(),
+                clock.instant(),
+                category.version()
         ));
     }
 

@@ -9,20 +9,20 @@ import java.time.LocalDate;
 
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import ru.otus.financetracker.configuration.ApplicationProperties;
-import ru.otus.financetracker.application.identity.UserRegistrationRepository;
-import ru.otus.financetracker.application.identity.UserAuthenticationRepository;
-import ru.otus.financetracker.application.categories.CategoryRepository;
-import ru.otus.financetracker.application.transactions.TransactionRepository;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import ru.otus.financetracker.application.audit.AuditLogRepository;
 import ru.otus.financetracker.application.budgets.BudgetRepository;
+import ru.otus.financetracker.application.categories.CategoryRepository;
 import ru.otus.financetracker.application.dashboard.DashboardRepository;
+import ru.otus.financetracker.application.identity.UserAuthenticationRepository;
+import ru.otus.financetracker.application.identity.UserRegistrationRepository;
 import ru.otus.financetracker.application.recurring.RecurringTransactionOccurrenceRepository;
 import ru.otus.financetracker.application.recurring.RecurringTransactionRepository;
+import ru.otus.financetracker.application.transactions.TransactionRepository;
+import ru.otus.financetracker.configuration.ApplicationProperties;
 import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest(properties = {
@@ -73,7 +73,9 @@ class FinanceTrackerApplicationTests {
     private RecurringTransactionOccurrenceRepository recurringTransactionOccurrenceRepository;
 
     private final Clock clock;
+
     private final ObjectMapper objectMapper;
+
     private final Validator validator;
 
     @Autowired
@@ -90,10 +92,13 @@ class FinanceTrackerApplicationTests {
     @Test
     void shouldConfigureUtcClockAndJsonFormats() throws Exception {
         assertThat(clock.getZone().getId()).isEqualTo("UTC");
-        assertThat(objectMapper.writeValueAsString(new JsonPayload(
+        var jsonPayload = new JsonPayload(
                 LocalDate.of(2026, 9, 16),
                 new BigDecimal("1E+8")
-        ))).isEqualTo("{\"date\":\"2026-09-16\",\"amount\":\"100000000\"}");
+        );
+
+        assertThat(objectMapper.writeValueAsString(jsonPayload))
+                .isEqualTo("{\"date\":\"2026-09-16\",\"amount\":\"100000000\"}");
     }
 
     @Test

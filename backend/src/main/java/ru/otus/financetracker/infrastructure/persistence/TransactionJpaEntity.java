@@ -64,9 +64,21 @@ public class TransactionJpaEntity {
     protected TransactionJpaEntity() {
     }
 
-    TransactionJpaEntity(UUID id, UUID userId, UUID categoryId, BigDecimal amount, String currency,
-                          BigDecimal exchangeRateToBase, LocalDate transactionDate, String description,
-                          TransactionType transactionType, UUID recurringTransactionId, Instant createdAt, Instant updatedAt, long version) {
+    TransactionJpaEntity(
+            UUID id,
+            UUID userId,
+            UUID categoryId,
+            BigDecimal amount,
+            String currency,
+            BigDecimal exchangeRateToBase,
+            LocalDate transactionDate,
+            String description,
+            TransactionType transactionType,
+            UUID recurringTransactionId,
+            Instant createdAt,
+            Instant updatedAt,
+            long version
+    ) {
         this.id = id;
         this.userId = userId;
         this.categoryId = categoryId;
@@ -82,17 +94,55 @@ public class TransactionJpaEntity {
         this.version = version;
     }
 
-    UUID getId() { return id; }
-    UUID getUserId() { return userId; }
-    UUID getCategoryId() { return categoryId; }
-    BigDecimal getAmount() { return amount; }
-    String getCurrency() { return currency; }
-    BigDecimal getExchangeRateToBase() { return exchangeRateToBase; }
-    LocalDate getTransactionDate() { return transactionDate; }
-    String getDescription() { return description; }
-    TransactionType getTransactionType() { return transactionType; }
-    UUID getRecurringTransactionId() { return recurringTransactionId; }
-    Instant getCreatedAt() { return createdAt; }
-    Instant getUpdatedAt() { return updatedAt; }
-    long getVersion() { return version; }
+    UUID getId() {
+        return id;
+    }
+
+    UUID getUserId() {
+        return userId;
+    }
+
+    UUID getCategoryId() {
+        return categoryId;
+    }
+
+    BigDecimal getAmount() {
+        return amount;
+    }
+
+    String getCurrency() {
+        return currency;
+    }
+
+    BigDecimal getExchangeRateToBase() {
+        return exchangeRateToBase;
+    }
+
+    LocalDate getTransactionDate() {
+        return transactionDate;
+    }
+
+    String getDescription() {
+        return description;
+    }
+
+    TransactionType getTransactionType() {
+        return transactionType;
+    }
+
+    UUID getRecurringTransactionId() {
+        return recurringTransactionId;
+    }
+
+    Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    long getVersion() {
+        return version;
+    }
 }

@@ -1,15 +1,16 @@
 package ru.otus.financetracker.infrastructure.persistence;
 
-import org.springframework.stereotype.Repository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import java.util.LinkedHashMap;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Repository;
 import ru.otus.financetracker.application.audit.AuditLogRepository;
 import ru.otus.financetracker.domain.audit.AuditLog;
 import ru.otus.financetracker.domain.audit.AuditLogEntry;
@@ -29,31 +30,61 @@ public class JpaAuditLogRepository implements AuditLogRepository {
     @Override
     public void save(AuditLog auditLog) {
         auditLogJpaRepository.saveAndFlush(new AuditLogJpaEntity(
-                auditLog.id(), auditLog.actorUserId(), auditLog.entityType(), auditLog.entityId(), auditLog.action(),
-                auditLog.occurredAt(), toJson(auditLog.beforeState()), toJson(auditLog.afterState())
+                auditLog.id(),
+                auditLog.actorUserId(),
+                auditLog.entityType(),
+                auditLog.entityId(),
+                auditLog.action(),
+                auditLog.occurredAt(),
+                toJson(auditLog.beforeState()),
+                toJson(auditLog.afterState())
         ));
     }
 
     @Override
-    public Page<AuditLogEntry> findAllByActorUserIdAndEntityType(UUID actorUserId, String entityType, UUID entityId,
-                                                                   Pageable pageable) {
+    public Page<AuditLogEntry> findAllByActorUserIdAndEntityType(
+            UUID actorUserId,
+            String entityType,
+            UUID entityId,
+            Pageable pageable
+    ) {
         Page<AuditLogJpaEntity> entries = entityId == null
                 ? auditLogJpaRepository.findAllByActorUserIdAndEntityType(actorUserId, entityType, pageable)
-                : auditLogJpaRepository.findAllByActorUserIdAndEntityTypeAndEntityId(actorUserId, entityType, entityId, pageable);
-        return entries.map(entry -> new AuditLogEntry(entry.id(), entry.entityType(), entry.entityId(), entry.action(),
-                entry.occurredAt(), toMap(entry.beforeState()), toMap(entry.afterState())));
+                : auditLogJpaRepository.findAllByActorUserIdAndEntityTypeAndEntityId(
+                        actorUserId,
+                        entityType,
+                        entityId,
+                        pageable
+                );
+        return entries.map(entry -> new AuditLogEntry(
+                entry.id(),
+                entry.entityType(),
+                entry.entityId(),
+                entry.action(),
+                entry.occurredAt(),
+                toMap(entry.beforeState()),
+                toMap(entry.afterState())
+        ));
     }
 
     private Map<String, Object> toMap(JsonNode state) {
-        if (state == null || state.isNull()) return null;
+        if (state == null || state.isNull()) {
+            return null;
+        }
         Map<String, Object> values = new LinkedHashMap<>();
-        state.properties().forEach(entry -> values.put(entry.getKey(), jsonValue(entry.getValue())));
+        state.properties().forEach(entry ->
+                values.put(entry.getKey(), jsonValue(entry.getValue()))
+        );
         return Collections.unmodifiableMap(values);
     }
 
     private Object jsonValue(JsonNode value) {
-        if (value.isNull()) return null;
-        if (value.isTextual()) return value.textValue();
+        if (value.isNull()) {
+            return null;
+        }
+        if (value.isTextual()) {
+            return value.textValue();
+        }
         return value.toString();
     }
 

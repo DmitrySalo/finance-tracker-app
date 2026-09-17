@@ -48,8 +48,16 @@ public class AuditLogJpaEntity {
     protected AuditLogJpaEntity() {
     }
 
-    AuditLogJpaEntity(UUID id, UUID actorUserId, String entityType, UUID entityId, AuditAction action, Instant occurredAt,
-                      JsonNode beforeState, JsonNode afterState) {
+    AuditLogJpaEntity(
+            UUID id,
+            UUID actorUserId,
+            String entityType,
+            UUID entityId,
+            AuditAction action,
+            Instant occurredAt,
+            JsonNode beforeState,
+            JsonNode afterState
+    ) {
         this.id = id;
         this.actorUserId = actorUserId;
         this.entityType = entityType;
@@ -60,11 +68,31 @@ public class AuditLogJpaEntity {
         this.afterState = afterState;
     }
 
-    UUID id() { return id; }
-    String entityType() { return entityType; }
-    UUID entityId() { return entityId; }
-    AuditAction action() { return action; }
-    Instant occurredAt() { return occurredAt; }
-    JsonNode beforeState() { return beforeState; }
-    JsonNode afterState() { return afterState; }
+    UUID id() {
+        return id;
+    }
+
+    String entityType() {
+        return entityType;
+    }
+
+    UUID entityId() {
+        return entityId;
+    }
+
+    AuditAction action() {
+        return action;
+    }
+
+    Instant occurredAt() {
+        return occurredAt;
+    }
+
+    JsonNode beforeState() {
+        return beforeState;
+    }
+
+    JsonNode afterState() {
+        return afterState;
+    }
 }

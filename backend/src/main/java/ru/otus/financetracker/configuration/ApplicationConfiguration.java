@@ -10,9 +10,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import ru.otus.financetracker.shared.web.RequestSizeLimitFilter;
-import ru.otus.financetracker.shared.web.CorrelationIdFilter;
 import ru.otus.financetracker.shared.web.ApiErrorResponseWriter;
+import ru.otus.financetracker.shared.web.CorrelationIdFilter;
+import ru.otus.financetracker.shared.web.RequestSizeLimitFilter;
 import tools.jackson.databind.JacksonModule;
 import tools.jackson.databind.module.SimpleModule;
 import tools.jackson.databind.ser.std.StdSerializer;
@@ -36,7 +36,10 @@ public class ApplicationConfiguration {
     }
 
     @Bean
-    RequestSizeLimitFilter requestSizeLimitFilter(ApplicationProperties properties, ApiErrorResponseWriter errorResponseWriter) {
+    RequestSizeLimitFilter requestSizeLimitFilter(
+            ApplicationProperties properties,
+            ApiErrorResponseWriter errorResponseWriter
+    ) {
         return new RequestSizeLimitFilter(properties, errorResponseWriter);
     }
 
@@ -46,7 +49,9 @@ public class ApplicationConfiguration {
     }
 
     @Bean
-    UrlBasedCorsConfigurationSource corsConfigurationSource(ApplicationProperties properties) {
+    UrlBasedCorsConfigurationSource corsConfigurationSource(
+            ApplicationProperties properties
+    ) {
         var corsConfiguration = new CorsConfiguration();
         corsConfiguration.setAllowedOrigins(properties.cors().allowedOrigins());
         corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
@@ -64,8 +69,11 @@ public class ApplicationConfiguration {
         }
 
         @Override
-        public void serialize(BigDecimal value, tools.jackson.core.JsonGenerator generator,
-                              tools.jackson.databind.SerializationContext context) throws tools.jackson.core.JacksonException {
+        public void serialize(
+                BigDecimal value,
+                tools.jackson.core.JsonGenerator generator,
+                tools.jackson.databind.SerializationContext context
+        ) throws tools.jackson.core.JacksonException {
             generator.writeString(value.toPlainString());
         }
     }

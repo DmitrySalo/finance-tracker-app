@@ -15,7 +15,10 @@ public class JpaUserRegistrationRepository implements UserRegistrationRepository
     private final UserJpaRepository userJpaRepository;
     private final TransactionTemplate transactionTemplate;
 
-    public JpaUserRegistrationRepository(UserJpaRepository userJpaRepository, TransactionTemplate transactionTemplate) {
+    public JpaUserRegistrationRepository(
+            UserJpaRepository userJpaRepository,
+            TransactionTemplate transactionTemplate
+    ) {
         this.userJpaRepository = userJpaRepository;
         this.transactionTemplate = transactionTemplate;
     }
@@ -23,7 +26,9 @@ public class JpaUserRegistrationRepository implements UserRegistrationRepository
     @Override
     public void save(User user) {
         try {
-            transactionTemplate.executeWithoutResult(status -> userJpaRepository.saveAndFlush(toEntity(user)));
+            transactionTemplate.executeWithoutResult(
+                    status -> userJpaRepository.saveAndFlush(toEntity(user))
+            );
         } catch (DataIntegrityViolationException exception) {
             if (isDuplicateEmail(exception)) {
                 throw new DuplicateEmailException(exception);
@@ -46,7 +51,15 @@ public class JpaUserRegistrationRepository implements UserRegistrationRepository
     }
 
     private UserJpaEntity toEntity(User user) {
-        return new UserJpaEntity(user.id(), user.email(), user.passwordHash(), user.displayName(), user.baseCurrency(),
-                user.createdAt(), user.updatedAt(), user.version());
+        return new UserJpaEntity(
+                user.id(),
+                user.email(),
+                user.passwordHash(),
+                user.displayName(),
+                user.baseCurrency(),
+                user.createdAt(),
+                user.updatedAt(),
+                user.version()
+        );
     }
 }

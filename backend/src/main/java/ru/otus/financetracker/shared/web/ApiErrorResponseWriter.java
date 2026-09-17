@@ -19,8 +19,13 @@ public class ApiErrorResponseWriter {
         this.objectMapper = objectMapper;
     }
 
-    public void write(HttpServletResponse response, HttpServletRequest request, int status,
-                      ErrorCode code, String message) throws IOException {
+    public void write(
+            HttpServletResponse response,
+            HttpServletRequest request,
+            int status,
+            ErrorCode code,
+            String message
+    ) throws IOException {
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), new ApiErrorResponse(

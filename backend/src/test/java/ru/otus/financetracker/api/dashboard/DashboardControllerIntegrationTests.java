@@ -24,16 +24,25 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
-@SpringBootTest(properties = {"JWT_ISSUER=https://issuer.test", "JWT_AUDIENCE=finance-tracker-test",
-        "JWT_SECRET=test-signing-secret-with-at-least-32-characters", "CORS_ALLOWED_ORIGINS=https://frontend.test",
-        "MAX_REQUEST_SIZE=1MB", "MAX_CSV_FILE_SIZE=512KB", "MAX_CSV_ROWS=100", "MAX_REQUEST_HEADER_SIZE=8KB",
-        "REGISTRATION_MAX_ATTEMPTS=100"})
+@SpringBootTest(properties = {
+        "JWT_ISSUER=https://issuer.test",
+        "JWT_AUDIENCE=finance-tracker-test",
+        "JWT_SECRET=test-signing-secret-with-at-least-32-characters",
+        "CORS_ALLOWED_ORIGINS=https://frontend.test",
+        "MAX_REQUEST_SIZE=1MB",
+        "MAX_CSV_FILE_SIZE=512KB",
+        "MAX_CSV_ROWS=100",
+        "MAX_REQUEST_HEADER_SIZE=8KB",
+        "REGISTRATION_MAX_ATTEMPTS=100"
+})
 @AutoConfigureMockMvc
 @Testcontainers
 class DashboardControllerIntegrationTests {
 
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
+            DockerImageName.parse("postgres:18-alpine")
+    );
 
     @Autowired
     private MockMvc mockMvc;
@@ -74,8 +83,14 @@ class DashboardControllerIntegrationTests {
         insertTransaction(userId, transport, "99.0000", "1.00000000", LocalDate.of(2026, 10, 1), "EXPENSE");
         for (int index = 0; index < 9; index++) {
             UUID categoryId = insertCategory(userId, "Category " + index);
-            insertTransaction(userId, categoryId, "%d.0000".formatted(index == 8 ? 6 : index + 1), "1.00000000",
-                    LocalDate.of(2026, 9, 10), "EXPENSE");
+            insertTransaction(
+                userId,
+                categoryId,
+                "%d.0000".formatted(index == 8 ? 6 : index + 1),
+                "1.00000000",
+                LocalDate.of(2026, 9, 10),
+                "EXPENSE"
+            );
         }
         UUID firstTieCategoryId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID secondTieCategoryId = UUID.fromString("00000000-0000-0000-0000-000000000002");
@@ -87,7 +102,10 @@ class DashboardControllerIntegrationTests {
         UUID otherUserCategoryId = insertCategory(otherUserId, "Other user category");
         insertTransaction(otherUserId, otherUserCategoryId, "999.0000", "1.00000000", LocalDate.of(2026, 9, 15), "EXPENSE");
 
-        mockMvc.perform(get("/api/v1/dashboard?month=2026-09").header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+                get("/api/v1/dashboard?month=2026-09")
+                    .header("Authorization", "Bearer " + token)
+            )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.month").value("2026-09"))
                 .andExpect(jsonPath("$.expensesByCategory.length()").value(10))
@@ -123,8 +141,10 @@ class DashboardControllerIntegrationTests {
         UUID otherUserCategoryId = insertCategory(otherUserId, "Other user trend");
         insertTransaction(otherUserId, otherUserCategoryId, "999.0000", "1.00000000", LocalDate.of(2026, 9, 30), "EXPENSE");
 
-        mockMvc.perform(get("/api/v1/dashboard/spending-trend?endMonth=2026-09")
-                        .header("Authorization", "Bearer " + token))
+        mockMvc.perform(
+            get("/api/v1/dashboard/spending-trend?endMonth=2026-09")
+                .header("Authorization", "Bearer " + token)
+        )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.endMonth").value("2026-09"))
                 .andExpect(jsonPath("$.months.length()").value(6))
@@ -137,22 +157,35 @@ class DashboardControllerIntegrationTests {
 
     @Test
     void shouldRequireAuthenticationAndValidateMonthParameters() throws Exception {
-        mockMvc.perform(get("/api/v1/dashboard?month=2026-09")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/dashboard?month=2026-09"))
+            .andExpect(status().isUnauthorized());
 
         String token = registerAndLogin("dashboard-validation@example.test");
-        mockMvc.perform(get("/api/v1/dashboard?month=2026-13").header("Authorization", "Bearer " + token))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-                .andExpect(jsonPath("$.violations[0].field").value("month"));
-        mockMvc.perform(get("/api/v1/dashboard/spending-trend?endMonth=2026-9")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-                .andExpect(jsonPath("$.violations[0].field").value("endMonth"));
+        mockMvc.perform(
+                get("/api/v1/dashboard?month=2026-13")
+                    .header("Authorization", "Bearer " + token)
+            )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+            .andExpect(jsonPath("$.violations[0].field").value("month"));
+        mockMvc.perform(
+            get("/api/v1/dashboard/spending-trend?endMonth=2026-9")
+                .header("Authorization", "Bearer " + token)
+        )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+            .andExpect(jsonPath("$.violations[0].field").value("endMonth"));
         mockMvc.perform(get("/api/v1/dashboard").header("Authorization", "Bearer " + token))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-                .andExpect(jsonPath("$.violations[0].field").value("month"));
-        mockMvc.perform(get("/api/v1/dashboard/spending-trend").header("Authorization", "Bearer " + token))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-                .andExpect(jsonPath("$.violations[0].field").value("endMonth"));
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+            .andExpect(jsonPath("$.violations[0].field").value("month"));
+        mockMvc.perform(
+            get("/api/v1/dashboard/spending-trend")
+                .header("Authorization", "Bearer " + token)
+        )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+            .andExpect(jsonPath("$.violations[0].field").value("endMonth"));
     }
 
     private UUID insertUser() {
@@ -173,21 +206,37 @@ class DashboardControllerIntegrationTests {
         return id;
     }
 
-    private void insertTransaction(UUID userId, UUID categoryId, String amount, String exchangeRate,
-                                   LocalDate transactionDate, String transactionType) {
+    private void insertTransaction(
+        UUID userId,
+        UUID categoryId,
+        String amount,
+        String exchangeRate,
+        LocalDate transactionDate,
+        String transactionType
+    ) {
         jdbcTemplate.update("""
                         INSERT INTO transactions (id,user_id,category_id,amount,currency,exchange_rate_to_base,transaction_date,transaction_type)
                         VALUES (?,?,?,?,?,?,?,?)
-                        """, UUID.randomUUID(), userId, categoryId, new BigDecimal(amount), "USD",
-                new BigDecimal(exchangeRate), transactionDate, transactionType);
+                        """,
+                UUID.randomUUID(),
+                userId,
+                categoryId,
+                new BigDecimal(amount),
+                "USD",
+                new BigDecimal(exchangeRate),
+                transactionDate,
+                transactionType
+        );
     }
 
     private String registerAndLogin(String email) throws Exception {
-        mockMvc.perform(post("/api/v1/auth/register").contentType("application/json")
-                        .content("{\"email\":\"%s\",\"password\":\"a-secure-password\",\"displayName\":\"Test User\",\"baseCurrency\":\"USD\"}".formatted(email)))
+        mockMvc.perform(post("/api/v1/auth/register")
+                .contentType("application/json")
+                .content("{\"email\":\"%s\",\"password\":\"a-secure-password\",\"displayName\":\"Test User\",\"baseCurrency\":\"USD\"}".formatted(email)))
                 .andExpect(status().isCreated());
-        var response = mockMvc.perform(post("/api/v1/auth/login").contentType("application/json")
-                        .content("{\"email\":\"%s\",\"password\":\"a-secure-password\"}".formatted(email)))
+        var response = mockMvc.perform(post("/api/v1/auth/login")
+                .contentType("application/json")
+                .content("{\"email\":\"%s\",\"password\":\"a-secure-password\"}".formatted(email)))
                 .andExpect(status().isOk())
                 .andReturn();
         return new tools.jackson.databind.ObjectMapper().readTree(response.getResponse().getContentAsString())

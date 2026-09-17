@@ -2,8 +2,8 @@ package ru.otus.financetracker.infrastructure.persistence;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,11 +12,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import ru.otus.financetracker.domain.categories.TransactionType;
 
-interface TransactionJpaRepository extends JpaRepository<TransactionJpaEntity, UUID>, JpaSpecificationExecutor<TransactionJpaEntity> {
+interface TransactionJpaRepository extends JpaRepository<TransactionJpaEntity, UUID>,
+        JpaSpecificationExecutor<TransactionJpaEntity> {
 
-    default List<TransactionJpaEntity> findExportChunk(org.springframework.data.jpa.domain.Specification<TransactionJpaEntity> specification,
-                                                        ru.otus.financetracker.application.transactions.TransactionExportCursor cursor,
-                                                        int limit) {
+    default List<TransactionJpaEntity> findExportChunk(
+            org.springframework.data.jpa.domain.Specification<TransactionJpaEntity> specification,
+            ru.otus.financetracker.application.transactions.TransactionExportCursor cursor,
+            int limit
+    ) {
         var exportSpecification = specification.and((root, query, criteriaBuilder) -> {
             if (cursor == null) {
                 return criteriaBuilder.conjunction();
@@ -30,8 +33,16 @@ interface TransactionJpaRepository extends JpaRepository<TransactionJpaEntity, U
             );
         });
         return findBy(exportSpecification, query -> query
-                .sortBy(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "transactionDate")
-                        .and(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id")))
+                .sortBy(
+                        org.springframework.data.domain.Sort.by(
+                                        org.springframework.data.domain.Sort.Direction.DESC,
+                                        "transactionDate"
+                                )
+                                .and(org.springframework.data.domain.Sort.by(
+                                        org.springframework.data.domain.Sort.Direction.DESC,
+                                        "id"
+                                ))
+                )
                 .limit(limit)
                 .all());
     }

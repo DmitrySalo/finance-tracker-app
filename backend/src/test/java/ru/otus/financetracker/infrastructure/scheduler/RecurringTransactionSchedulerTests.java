@@ -12,10 +12,14 @@ import org.junit.jupiter.api.Test;
 import ru.otus.financetracker.application.recurring.RecurringTransactionService;
 
 class RecurringTransactionSchedulerTests {
+
     @Test
     void shouldUseBusinessDateFromInjectedClock() {
         var service = mock(RecurringTransactionService.class);
-        var clock = Clock.fixed(Instant.parse("2026-02-28T00:30:00Z"), ZoneId.of("America/Los_Angeles"));
+        var clock = Clock.fixed(
+                Instant.parse("2026-02-28T00:30:00Z"),
+                ZoneId.of("America/Los_Angeles")
+        );
 
         new RecurringTransactionScheduler(service, clock).createDueOccurrences();
 

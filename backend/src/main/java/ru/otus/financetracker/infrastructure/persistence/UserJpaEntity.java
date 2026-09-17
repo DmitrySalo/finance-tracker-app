@@ -1,7 +1,7 @@
 package ru.otus.financetracker.infrastructure.persistence;
 
-import java.time.Instant;
 import java.sql.Types;
+import java.time.Instant;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
@@ -43,8 +43,16 @@ public class UserJpaEntity {
     protected UserJpaEntity() {
     }
 
-    UserJpaEntity(UUID id, String email, String passwordHash, String displayName, String baseCurrency,
-                  Instant createdAt, Instant updatedAt, long version) {
+    UserJpaEntity(
+            UUID id,
+            String email,
+            String passwordHash,
+            String displayName,
+            String baseCurrency,
+            Instant createdAt,
+            Instant updatedAt,
+            long version
+    ) {
         this.id = id;
         this.email = email;
         this.passwordHash = passwordHash;

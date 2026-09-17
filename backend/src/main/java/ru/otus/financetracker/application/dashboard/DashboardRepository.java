@@ -6,12 +6,23 @@ import java.util.UUID;
 
 public interface DashboardRepository {
 
-    List<DashboardCategoryExpense> findExpenseAmountsByCategory(UUID userId, LocalDate fromInclusive,
-                                                                 LocalDate toExclusive, int limit);
+    List<DashboardCategoryExpense> findExpenseAmountsByCategory(
+            UUID userId,
+            LocalDate fromInclusive,
+            LocalDate toExclusive,
+            int limit
+    );
 
-    List<DashboardCategoryExpense> findTopExpenseAmountsByCategory(UUID userId, LocalDate fromInclusive,
-                                                                    LocalDate toExclusive, int limit);
+    List<DashboardCategoryExpense> findTopExpenseAmountsByCategory(
+            UUID userId,
+            LocalDate fromInclusive,
+            LocalDate toExclusive,
+            int limit
+    );
 
-    List<DashboardMonthlyExpense> findMonthlyExpenseAmounts(UUID userId, LocalDate fromInclusive,
-                                                            LocalDate toExclusive);
+    List<DashboardMonthlyExpense> findMonthlyExpenseAmounts(
+            UUID userId,
+            LocalDate fromInclusive,
+            LocalDate toExclusive
+    );
 }

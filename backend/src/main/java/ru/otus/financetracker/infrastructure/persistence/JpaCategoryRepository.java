@@ -43,12 +43,30 @@ public class JpaCategoryRepository implements CategoryRepository {
     }
 
     private CategoryJpaEntity toEntity(Category category) {
-        return new CategoryJpaEntity(category.id(), category.userId(), category.name(), category.transactionType(),
-                category.icon(), category.color(), category.createdAt(), category.updatedAt(), category.version());
+        return new CategoryJpaEntity(
+                category.id(),
+                category.userId(),
+                category.name(),
+                category.transactionType(),
+                category.icon(),
+                category.color(),
+                category.createdAt(),
+                category.updatedAt(),
+                category.version()
+        );
     }
 
     private Category toDomain(CategoryJpaEntity entity) {
-        return new Category(entity.getId(), entity.getUserId(), entity.getName(), entity.getTransactionType(),
-                entity.getIcon(), entity.getColor(), entity.getCreatedAt(), entity.getUpdatedAt(), entity.getVersion());
+        return new Category(
+                entity.getId(),
+                entity.getUserId(),
+                entity.getName(),
+                entity.getTransactionType(),
+                entity.getIcon(),
+                entity.getColor(),
+                entity.getCreatedAt(),
+                entity.getUpdatedAt(),
+                entity.getVersion()
+        );
     }
 }

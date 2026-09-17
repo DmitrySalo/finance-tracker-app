@@ -9,9 +9,28 @@ import ru.otus.financetracker.application.recurring.RecurringTransactionOccurren
 
 @Repository
 public class JpaRecurringTransactionOccurrenceRepository implements RecurringTransactionOccurrenceRepository {
+
     private final RecurringTransactionOccurrenceJpaRepository repository;
-    public JpaRecurringTransactionOccurrenceRepository(RecurringTransactionOccurrenceJpaRepository repository) { this.repository = repository; }
-    @Override public void save(UUID recurringTransactionId, LocalDate occurrenceDate, UUID transactionId, Instant createdAt) {
-        repository.saveAndFlush(new RecurringTransactionOccurrenceJpaEntity(UUID.randomUUID(), recurringTransactionId, occurrenceDate, transactionId, createdAt));
+
+    public JpaRecurringTransactionOccurrenceRepository(
+            RecurringTransactionOccurrenceJpaRepository repository
+    ) {
+        this.repository = repository;
+    }
+
+    @Override
+    public void save(
+            UUID recurringTransactionId,
+            LocalDate occurrenceDate,
+            UUID transactionId,
+            Instant createdAt
+    ) {
+        repository.saveAndFlush(new RecurringTransactionOccurrenceJpaEntity(
+                UUID.randomUUID(),
+                recurringTransactionId,
+                occurrenceDate,
+                transactionId,
+                createdAt
+        ));
     }
 }

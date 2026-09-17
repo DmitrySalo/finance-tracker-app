@@ -39,7 +39,16 @@ class BudgetCalculationTests {
 
     private Budget budget(String limitAmount) {
         Instant timestamp = Instant.parse("2026-09-16T12:00:00Z");
-        return new Budget(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), LocalDate.of(2026, 9, 1),
-                new BigDecimal(limitAmount), "USD", timestamp, timestamp, 0);
+        return new Budget(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                LocalDate.of(2026, 9, 1),
+                new BigDecimal(limitAmount),
+                "USD",
+                timestamp,
+                timestamp,
+                0
+        );
     }
 }

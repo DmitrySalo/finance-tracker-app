@@ -22,7 +22,10 @@ public class RequestSizeLimitFilter extends OncePerRequestFilter {
     private final long maxRequestSizeBytes;
     private final ApiErrorResponseWriter errorResponseWriter;
 
-    public RequestSizeLimitFilter(ApplicationProperties properties, ApiErrorResponseWriter errorResponseWriter) {
+    public RequestSizeLimitFilter(
+            ApplicationProperties properties,
+            ApiErrorResponseWriter errorResponseWriter
+    ) {
         this.maxRequestSizeBytes = properties.limits().maxRequestSize().toBytes();
         this.errorResponseWriter = errorResponseWriter;
     }
@@ -34,16 +37,26 @@ public class RequestSizeLimitFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         if (request.getContentLengthLong() > maxRequestSizeBytes) {
-            errorResponseWriter.write(response, request, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
-                    ErrorCode.PAYLOAD_TOO_LARGE, "Request body exceeds the allowed size.");
+            errorResponseWriter.write(
+                    response,
+                    request,
+                    HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                    ErrorCode.PAYLOAD_TOO_LARGE,
+                    "Request body exceeds the allowed size."
+            );
             return;
         }
 
         try {
             filterChain.doFilter(new SizeLimitedRequest(request, maxRequestSizeBytes), response);
         } catch (RequestSizeExceededException exception) {
-            errorResponseWriter.write(response, request, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
-                    ErrorCode.PAYLOAD_TOO_LARGE, "Request body exceeds the allowed size.");
+            errorResponseWriter.write(
+                    response,
+                    request,
+                    HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                    ErrorCode.PAYLOAD_TOO_LARGE,
+                    "Request body exceeds the allowed size."
+            );
         }
     }
 
@@ -58,7 +71,10 @@ public class RequestSizeLimitFilter extends OncePerRequestFilter {
 
         @Override
         public ServletInputStream getInputStream() throws IOException {
-            return new SizeLimitedServletInputStream(super.getInputStream(), maxRequestSizeBytes);
+            return new SizeLimitedServletInputStream(
+                    super.getInputStream(),
+                    maxRequestSizeBytes
+            );
         }
 
         @Override

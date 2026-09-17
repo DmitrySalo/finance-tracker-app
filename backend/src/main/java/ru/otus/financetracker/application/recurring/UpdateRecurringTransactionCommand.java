@@ -6,8 +6,16 @@ import java.util.UUID;
 
 import ru.otus.financetracker.domain.categories.TransactionType;
 
-public record UpdateRecurringTransactionCommand(long version, UUID categoryId, BigDecimal amount, String currency,
-                                                BigDecimal exchangeRateToBase, String description,
-                                                TransactionType transactionType, Integer dayOfMonth,
-                                                LocalDate startDate, Boolean active) {
+public record UpdateRecurringTransactionCommand(
+        long version,
+        UUID categoryId,
+        BigDecimal amount,
+        String currency,
+        BigDecimal exchangeRateToBase,
+        String description,
+        TransactionType transactionType,
+        Integer dayOfMonth,
+        LocalDate startDate,
+        Boolean active
+) {
 }

@@ -1,8 +1,8 @@
 package ru.otus.financetracker.application.budgets;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -31,9 +31,14 @@ public class BudgetService {
     private final BudgetAuditService budgetAuditService;
     private final Clock clock;
 
-    public BudgetService(BudgetRepository budgetRepository, CategoryRepository categoryRepository,
-                         UserAuthenticationRepository userAuthenticationRepository,
-                         TransactionRepository transactionRepository, BudgetAuditService budgetAuditService, Clock clock) {
+    public BudgetService(
+            BudgetRepository budgetRepository,
+            CategoryRepository categoryRepository,
+            UserAuthenticationRepository userAuthenticationRepository,
+            TransactionRepository transactionRepository,
+            BudgetAuditService budgetAuditService,
+            Clock clock
+    ) {
         this.budgetRepository = budgetRepository;
         this.categoryRepository = categoryRepository;
         this.userAuthenticationRepository = userAuthenticationRepository;
@@ -48,8 +53,17 @@ public class BudgetService {
         requireExpenseCategory(userId, command.categoryId());
         requireBaseCurrency(userId, command.currency());
         Instant now = clock.instant();
-        Budget budget = budgetRepository.save(new Budget(UUID.randomUUID(), userId, command.categoryId(), command.budgetMonth(),
-                command.limitAmount(), command.currency(), now, now, 0));
+        Budget budget = budgetRepository.save(new Budget(
+                UUID.randomUUID(),
+                userId,
+                command.categoryId(),
+                command.budgetMonth(),
+                command.limitAmount(),
+                command.currency(),
+                now,
+                now,
+                0
+        ));
         budgetAuditService.recordCreate(userId, budget);
         return calculate(budget);
     }
@@ -63,8 +77,13 @@ public class BudgetService {
     public Page<BudgetCalculation> list(UUID userId, Pageable pageable) {
         Page<Budget> budgets = budgetRepository.findAllByUserId(userId, pageable);
         Map<BudgetPeriod, BigDecimal> spentAmounts = calculateSpentAmounts(budgets.getContent());
-        return budgets.map(budget -> BudgetCalculation.from(budget,
-                spentAmounts.getOrDefault(new BudgetPeriod(budget.categoryId(), budget.budgetMonth()), BigDecimal.ZERO)));
+        return budgets.map(budget -> BudgetCalculation.from(
+                budget,
+                spentAmounts.getOrDefault(
+                        new BudgetPeriod(budget.categoryId(), budget.budgetMonth()),
+                        BigDecimal.ZERO
+                )
+        ));
     }
 
     @Transactional
@@ -79,10 +98,17 @@ public class BudgetService {
         validateBudgetMonth(budgetMonth);
         String currency = command.currency() == null ? budget.currency() : command.currency();
         requireBaseCurrency(userId, currency);
-        Budget updated = budgetRepository.save(new Budget(budget.id(), budget.userId(), categoryId, budgetMonth,
+        Budget updated = budgetRepository.save(new Budget(
+                budget.id(),
+                budget.userId(),
+                categoryId,
+                budgetMonth,
                 command.limitAmount() == null ? budget.limitAmount() : command.limitAmount(),
-                currency, budget.createdAt(), clock.instant(),
-                budget.version()));
+                currency,
+                budget.createdAt(),
+                clock.instant(),
+                budget.version()
+        ));
         budgetAuditService.recordUpdate(userId, budget, updated);
         return calculate(updated);
     }
@@ -112,7 +138,8 @@ public class BudgetService {
     }
 
     private Budget findOwnedBudget(UUID userId, UUID budgetId) {
-        return budgetRepository.findByIdAndUserId(budgetId, userId).orElseThrow(ResourceNotFoundException::new);
+        return budgetRepository.findByIdAndUserId(budgetId, userId)
+                .orElseThrow(ResourceNotFoundException::new);
     }
 
     private void requireBaseCurrency(UUID userId, String currency) {
@@ -140,11 +167,16 @@ public class BudgetService {
                 .collect(Collectors.groupingBy(Budget::budgetMonth))
                 .entrySet().stream()
                 .flatMap(entry -> transactionRepository.sumExpenseAmountsInBaseCurrencyByMonth(
-                                budgets.getFirst().userId(), entry.getValue().stream().map(Budget::categoryId).distinct().toList(),
-                                entry.getKey(), entry.getKey().plusMonths(1))
+                                budgets.getFirst().userId(),
+                                entry.getValue().stream().map(Budget::categoryId).distinct().toList(),
+                                entry.getKey(),
+                                entry.getKey().plusMonths(1)
+                        )
                         .stream())
-                .collect(Collectors.toMap(total -> new BudgetPeriod(total.categoryId(), total.budgetMonth()),
-                        total -> total.spentAmount()));
+                .collect(Collectors.toMap(
+                        total -> new BudgetPeriod(total.categoryId(), total.budgetMonth()),
+                        total -> total.spentAmount()
+                ));
     }
 
     private record BudgetPeriod(UUID categoryId, java.time.LocalDate budgetMonth) {
